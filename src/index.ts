@@ -17,8 +17,8 @@ const sigmoid = (x: number) => 1 / (1 + Math.exp(-x))
 const new_MLP = (arr: number[]): MLP =>
     arr.map((current, i) =>
         Array.from({ length: current }, () => (<Neuron>{
-            w: new Float64Array(i === 0 ? 0 : arr[i - 1]).map(() => 0),
-            b: 0,
+            w: new Float64Array(i === 0 ? 0 : arr[i - 1]).map(() => Math.random() - 0.5),
+            b: Math.random() - 0.5,
             d_w: new Float64Array(i === 0 ? 0 : arr[i - 1]).fill(0),
             d_b: 0,
             d_w_废弃_不用_arr: [],
@@ -73,12 +73,18 @@ const mlp = new_MLP([28 * 28, 10, 10, 10, 10])
 
 const fx = (index: number) => {
     const d = data.training[index]
-    clear_w_b(mlp)
+
     正向计算(mlp, d.input)
-    反向传播(mlp, d.output)
-    // push_w_b(mlp)
-    // set_w_b_平均(mlp)
-    update_w_b(mlp)
+
+    for (let i = 0; i < 100; i++) {
+        clear_w_b(mlp)
+        反向传播(mlp, d.output)
+        // push_w_b(mlp)
+        // set_w_b_平均(mlp)
+        update_w_b(mlp)
+    }
+
+
     render(mlp)
 }
 
