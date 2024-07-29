@@ -9,6 +9,4 @@ type T = {
 export const data = mnist.set(8000, 2000) as {
     training: T[]
     test: T[]
-}
-
-console.log(data)
+} 
