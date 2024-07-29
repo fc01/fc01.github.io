@@ -71,11 +71,11 @@ const mlp = new_MLP([28 * 28, 6, 6, 6, 10])
 
 const fx = (index: number) => {
     const d = data.training[index]
-    clear_w_b(mlp)
+    // clear_w_b(mlp)
     正向计算(mlp, d.input)
     反向传播(mlp, d.output)
-    push_w_b(mlp)
-    set_w_b_平均(mlp)
+    // push_w_b(mlp)
+    // set_w_b_平均(mlp)
     update_w_b(mlp)
     render(mlp)
 }

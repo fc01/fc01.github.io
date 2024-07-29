@@ -3,37 +3,37 @@ export type Neuron = {
     b: number
     d_w: Float64Array
     d_b: number
-    output: number //输出缓存
+    output: number // 输出缓存
 
     d_w_废弃_不用_arr: Float64Array[]
     d_b_废弃_不用_arr: number[]
 }
 export type Layer = Neuron[]
-export type MLP = Layer[] //第1层是 输入层 output直接有数据 最后一层是输出层
+export type MLP = Layer[] // 第1层是输入层 output直接有数据 最后一层是输出层
 
+// Sigmoid function
+const sigmoid = (x: number): number => {
+    return 1 / (1 + Math.exp(-x));
+}
 
-
-
-//output已经计算好输出值了
-//链式求导
-//计算输出层的 d_w 和 d_b
-//计算隐藏层的 d_w 和 d_b
-//中文注释 
+// Derivative of the sigmoid function
+const sigmoidDerivative = (output: number): number => {
+    return output * (1 - output);
+}
 
 // 反向传播函数  target是实际需要的输出
-
 export const 反向传播 = (mlp: MLP, target: number[]) => {
     // 计算输出层的 d_w 和 d_b
     const outputLayer = mlp[mlp.length - 1];
-    
+
     for (let i = 0; i < outputLayer.length; i++) {
         const neuron = outputLayer[i];
         // 计算输出层误差
         const error = target[i] - neuron.output;
         // 计算输出层的 d_b
-        neuron.d_b = error;
+        neuron.d_b = error * sigmoidDerivative(neuron.output);
         // 计算输出层的 d_w
-        neuron.d_w = neuron.w.map((w, index) => error * neuron.output); // 假设激活函数为线性函数
+        neuron.d_w = neuron.w.map((w, index) => neuron.d_b * mlp[mlp.length - 2][index].output);
     }
 
     // 计算隐藏层的 d_w 和 d_b
@@ -51,9 +51,23 @@ export const 反向传播 = (mlp: MLP, target: number[]) => {
             for (let j = 0; j < nextLayer.length; j++) {
                 const nextNeuron = nextLayer[j];
                 const error = nextNeuron.d_b * nextNeuron.w[i];
-                neuron.d_b += error;
-                neuron.d_w = neuron.d_w.map((val, index) => val + error * neuron.output);
+                neuron.d_b += error * sigmoidDerivative(neuron.output);
+                neuron.d_w = neuron.d_w.map((val, index) => val + neuron.d_b * (l > 1 ? mlp[l - 1][index].output : 1));
             }
         }
     }
 }
+
+
+
+
+
+
+//output已经计算好输出值了
+//链式求导
+//激活函数是sigmoid
+//计算输出层的 d_w 和 d_b
+//计算隐藏层的 d_w 和 d_b
+//中文注释 
+
+// 反向传播函数  target是实际需要的输出
