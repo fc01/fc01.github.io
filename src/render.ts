@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+import { MLP } from './T';
 
 // 配置对象
 const config = {
@@ -26,7 +27,7 @@ const svg = d3.select('body').append('svg')
 const inputLayerX = 20
 const inputLayerY = 20
 
-export const inputNeurons: { x: number, y: number, setColor: (color: string) => void }[] = [];
+const inputNeurons: { x: number, y: number, setColor: (color: string) => void }[] = [];
 
 for (let i = 0; i < config.inputSize * config.inputSize; i++) {
     const xIndex = i % 28
@@ -40,7 +41,7 @@ for (let i = 0; i < config.inputSize * config.inputSize; i++) {
 let prevLayerX = inputLayerX + config.inputSize * config.neuronWidth + config.layerSpacing * 1.5;
 const hiddenLayerY = (height - Math.max(...config.hiddenLayers) * config.neuronHeight) / 2;
 
-export const hiddenLayers: { x: number, y: number, setColor: (color: string) => void }[][] = [];
+const hiddenLayers: { x: number, y: number, setColor: (color: string) => void }[][] = [];
 config.hiddenLayers.forEach((layerSize, layerIndex) => {
     const layerX = prevLayerX;
     const layerY = hiddenLayerY;
@@ -69,7 +70,7 @@ config.hiddenLayers.forEach((layerSize, layerIndex) => {
 const outputLayerX = prevLayerX + config.layerSpacing;
 const outputLayerY = (height - config.outputSize * config.neuronHeight) / 2;
 
-export const outputNeurons: { x: number, y: number, setColor: (color: string) => void }[] = [];
+const outputNeurons: { x: number, y: number, setColor: (color: string) => void }[] = [];
 
 for (let i = 0; i < config.outputSize; i++) {
     const x = outputLayerX;
@@ -143,4 +144,32 @@ inputNeurons.forEach(v => {
     v.setColor = color => {
         xx.attr('fill', color);
     }
-}) 
+})
+
+
+export const render = (mlp: MLP) => {
+    const adjust = (value: number, gray: number) => Math.round(value * gray + (255 - gray * 255))
+
+    const adjustColorBrightness = (gray: number): string => {
+        const adjustedR = adjust(0xcc, gray)
+        const adjustedG = adjust(0x66, gray)
+        const adjustedB = adjust(0xff, gray)
+        return `rgb(${adjustedR}, ${adjustedG}, ${adjustedB})`
+    }
+
+    mlp.layers[0].neurons.forEach((v, i) => {
+        inputNeurons[i].setColor(adjustColorBrightness(v.output))
+    })
+
+    for (let i = 1; i < mlp.layers.length - 1; i++) {
+        mlp.layers[i].neurons.forEach((v, j) => {
+            hiddenLayers[i - 1][j].setColor(adjustColorBrightness(v.output))
+        })
+    }
+
+
+    mlp.layers[mlp.layers.length - 1].neurons.forEach((v, i) => {
+        outputNeurons[i].setColor(adjustColorBrightness(v.output))
+    })
+
+}

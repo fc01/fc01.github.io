@@ -1,5 +1,5 @@
 import { data } from "./data"
-import { hiddenLayers, inputNeurons, outputNeurons } from "./svg"
+import { render } from "./render"
 import { Layer, MLP, Neuron } from "./T";
 
 
@@ -57,22 +57,6 @@ const 计算 = (mlp: MLP, data: number[]) => {
     }
 }
 
-const clearW = (mlp: MLP) => {
-    for (let i = 1; i < mlp.layers.length; i++) {
-        mlp.layers[i].neurons.forEach(v => {
-            v.d_w = v.d_w.map(() => 0)
-
-        })
-    }
-}
-
-const updateW = (mlp: MLP) => {
-    for (let i = 1; i < mlp.layers.length; i++) {
-        mlp.layers[i].neurons.forEach(v => {
-            v.w = v.w.map((vv, i) => vv - v.d_w[i] * 0.01)
-        })
-    }
-}
 
 const set_dw = (mlp: MLP, layerIndex: number, neuronIndex: number, X: number) => {
     const current = mlp.layers[layerIndex].neurons[neuronIndex]
@@ -83,8 +67,14 @@ const set_dw = (mlp: MLP, layerIndex: number, neuronIndex: number, X: number) =>
 }
 
 const 反向 = (mlp: MLP, arr: number[]) => {
-    clearW(mlp)
+    //clearW
+    for (let i = 1; i < mlp.layers.length; i++) {
+        mlp.layers[i].neurons.forEach(v => {
+            v.d_w = v.d_w.map(() => 0)
+        })
+    }
 
+    //
     arr.forEach((y, i) => {
         const neuron = mlp.layers[mlp.layers.length - 1].neurons[i]
         const X = (neuron.output - y) * neuron.output
@@ -100,46 +90,20 @@ const 反向 = (mlp: MLP, arr: number[]) => {
         }
     })
 
-    updateW(mlp)
+    //updateW
+    for (let i = 1; i < mlp.layers.length; i++) {
+        mlp.layers[i].neurons.forEach(v => {
+            v.w = v.w.map((vv, i) => vv - v.d_w[i] * 0.01)
+        })
+    }
 }
-
-
-
-
 
 const mlp = new_MLP([28 * 28, 10, 10, 10, 10])
 
 
-const render = () => {
-    const adjust = (value: number, gray: number) => Math.round(value * gray + (255 - gray * 255))
-
-    const adjustColorBrightness = (gray: number): string => {
-        const adjustedR = adjust(0xcc, gray)
-        const adjustedG = adjust(0x66, gray)
-        const adjustedB = adjust(0xff, gray)
-        return `rgb(${adjustedR}, ${adjustedG}, ${adjustedB})`
-    }
-
-    mlp.layers[0].neurons.forEach((v, i) => {
-        inputNeurons[i].setColor(adjustColorBrightness(v.output))
-    })
-
-    for (let i = 1; i < mlp.layers.length - 1; i++) {
-        mlp.layers[i].neurons.forEach((v, j) => {
-            hiddenLayers[i - 1][j].setColor(adjustColorBrightness(v.output))
-        })
-    }
-
-
-    mlp.layers[mlp.layers.length - 1].neurons.forEach((v, i) => {
-        outputNeurons[i].setColor(adjustColorBrightness(v.output))
-    })
-
-}
-
-
+ 
 setInterval(() => {
-    render()
+    render(mlp)
     const v = data.training[0]
     计算(mlp, v.input)
     反向(mlp, v.output)
