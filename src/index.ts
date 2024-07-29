@@ -1,10 +1,11 @@
 import { data } from "./data"
 import { render } from "./render"
-import { Layer, MLP, Neuron } from "./T";
+import { MLP, } from "./T";
 
 
-// Sigmoid 函数
-const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
+const sigmoid = (x: number) => 1 / (1 + Math.exp(-x))
+
+
 
 // // Sigmoid 导数函数
 // const sigmoidDerivative = (x: number) => {
@@ -17,26 +18,20 @@ const sum = (arr: number[]) => {
     arr.forEach(v => sum += v)
     return sum
 }
-const Arr = <T>(size: number, f: (i: number) => T) => new Array(size).fill(0).map(f)
 
-const new_Neuron = (size: number): Neuron => ({
-    d_w: Arr(size, () => 0),
-    w: Arr(size, Math.random),
-    b: 0,// Math.random()
-    output: 0,
+const new_MLP = (arr: number[]): MLP => ({
+    layers: arr.map((current, i) => {
+        const prev = i === 0 ? 0 : arr[i - 1]
+        return {
+            neurons: new Array(current).fill(0).map(() => ({
+                d_w: new Float64Array(prev),
+                w: new Float64Array(prev),
+                b: 0,
+                output: 0,
+            })),
+        }
+    })
 })
-
-const new_Layer = (prev: number, current: number): Layer => ({
-    neurons: Arr(current, () => new_Neuron(prev)),
-})
-
-const new_MLP = (arr: number[]): MLP => {
-    let mlp: MLP = { layers: [] }
-    for (let i = 0; i < arr.length; i++) {
-        mlp.layers[i] = new_Layer(i === 0 ? 0 : arr[i - 1], arr[i])
-    }
-    return mlp
-}
 
 
 const 计算 = (mlp: MLP, data: number[]) => {
@@ -101,7 +96,7 @@ const 反向 = (mlp: MLP, arr: number[]) => {
 const mlp = new_MLP([28 * 28, 10, 10, 10, 10])
 
 
- 
+
 setInterval(() => {
     render(mlp)
     const v = data.training[0]

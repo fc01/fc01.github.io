@@ -1,9 +1,7 @@
 export type Neuron = {
-    w: number[]
+    w: Float64Array
+    d_w: Float64Array
     b: number
-
-    //
-    d_w: number[]
     output: number
 }
 
