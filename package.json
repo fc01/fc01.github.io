@@ -1,0 +1,19 @@
+{
+    "scripts": {
+        "i": "npm config set registry https://registry.npm.taobao.org/ & npm i",
+        "w": "tsc -w",
+        "dev": "vite",
+        "build": "vite build"
+    },
+    "devDependencies": {
+        "@types/d3": "^7.4.3",
+        "@types/node": "^16.11.4",
+        "typescript": "^5.4.5",
+        "vite": "^4.1.4"
+    },
+    "dependencies": {
+        "d3": "^7.9.0",
+        "d3.js": "^0.0.2-security",
+        "mnist": "^1.1.0"
+    }
+}
