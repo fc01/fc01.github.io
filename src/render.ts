@@ -157,18 +157,18 @@ export const render = (mlp: MLP) => {
         return `rgb(${adjustedR}, ${adjustedG}, ${adjustedB})`
     }
 
-    mlp.layers[0].neurons.forEach((v, i) => {
+    mlp[0].forEach((v, i) => {
         inputNeurons[i].setColor(adjustColorBrightness(v.output))
     })
 
-    for (let i = 1; i < mlp.layers.length - 1; i++) {
-        mlp.layers[i].neurons.forEach((v, j) => {
+    for (let i = 1; i < mlp.length - 1; i++) {
+        mlp[i].forEach((v, j) => {
             hiddenLayers[i - 1][j].setColor(adjustColorBrightness(v.output))
         })
     }
 
 
-    mlp.layers[mlp.layers.length - 1].neurons.forEach((v, i) => {
+    mlp[mlp.length - 1].forEach((v, i) => {
         outputNeurons[i].setColor(adjustColorBrightness(v.output))
     })
 

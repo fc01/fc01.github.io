@@ -4,11 +4,5 @@ export type Neuron = {
     b: number
     output: number
 }
-
-export type Layer = {
-    neurons: Neuron[]
-}
-
-export type MLP = {
-    layers: Layer[]
-}
+export type Layer = Neuron[]
+export type MLP = Layer[]

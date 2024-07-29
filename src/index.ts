@@ -15,29 +15,25 @@ const sigmoid = (x: number) => 1 / (1 + Math.exp(-x))
 
 const sum = (arr: number[]) => arr.reduce((prev, v) => prev + v, 0)
 
-const new_MLP = (arr: number[]): MLP => ({
-    layers: arr.map((current, i) => {
-        const prev = i === 0 ? 0 : arr[i - 1]
-        return {
-            neurons: Array.from({ length: current }, () => ({
-                d_w: new Float64Array(prev),
-                w: new Float64Array(prev),
-                b: 0,
-                output: 0,
-            })),
-        }
-    })
+const new_MLP = (arr: number[]): MLP => arr.map((current, i) => {
+    const prev = i === 0 ? 0 : arr[i - 1]
+    return Array.from({ length: current }, () => ({
+        d_w: new Float64Array(prev),
+        w: new Float64Array(prev),
+        b: 0,
+        output: 0,
+    }))
 })
 
 
 const 计算 = (mlp: MLP, data: number[]) => {
     //    
-    mlp.layers[0].neurons.forEach((v, i) => v.output = data[i])
+    mlp[0].forEach((v, i) => v.output = data[i])
 
-    for (let i = 1; i < mlp.layers.length; i++) {
-        const prev = mlp.layers[i - 1].neurons
-        const current = mlp.layers[i].neurons
-
+    for (let i = 1; i < mlp.length; i++) {
+        const prev = mlp[i - 1]
+        const current = mlp[i]
+        
         current.forEach(neuron => {
             neuron.output = sigmoid(
                 sum(prev.map((v, i) => v.output * neuron.w[i])) + neuron.b
@@ -48,40 +44,40 @@ const 计算 = (mlp: MLP, data: number[]) => {
 
 
 const set_dw = (mlp: MLP, layerIndex: number, neuronIndex: number, X: number) => {
-    const current = mlp.layers[layerIndex].neurons[neuronIndex]
+    const current = mlp[layerIndex][neuronIndex]
     for (let i = 0; i < current.w.length; i++) {
-        const prev = mlp.layers[layerIndex - 1].neurons[i]
+        const prev = mlp[layerIndex - 1][i]
         current.d_w[i] = X * (1 - current.output) * prev.output
     }
 }
 
 const 反向 = (mlp: MLP, arr: number[]) => {
     //clearW
-    for (let i = 1; i < mlp.layers.length; i++) {
-        mlp.layers[i].neurons.forEach(v => {
+    for (let i = 1; i < mlp.length; i++) {
+        mlp[i].forEach(v => {
             v.d_w = v.d_w.map(() => 0)
         })
     }
 
     //
     arr.forEach((y, i) => {
-        const neuron = mlp.layers[mlp.layers.length - 1].neurons[i]
+        const neuron = mlp[mlp.length - 1][i]
         const X = (neuron.output - y) * neuron.output
-        set_dw(mlp, mlp.layers.length - 1, i, X)
+        set_dw(mlp, mlp.length - 1, i, X)
 
         //
         const XX = neuron.d_w[i] * neuron.w[i]
-        for (let li = mlp.layers.length - 2; li >= 1; li--) {
-            const test = mlp.layers[li].neurons
+        for (let li = mlp.length - 2; li >= 1; li--) {
+            const test = mlp[li]
             for (let i = 0; i < test.length; i++) {
-                set_dw(mlp, mlp.layers.length - 2, i, XX)
+                set_dw(mlp, mlp.length - 2, i, XX)
             }
         }
     })
 
     //updateW
-    for (let i = 1; i < mlp.layers.length; i++) {
-        mlp.layers[i].neurons.forEach(v => {
+    for (let i = 1; i < mlp.length; i++) {
+        mlp[i].forEach(v => {
             v.w = v.w.map((vv, i) => vv - v.d_w[i] * 0.01)
         })
     }
