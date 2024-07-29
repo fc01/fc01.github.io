@@ -1,7 +1,7 @@
 import { data } from "./data"
 import { render } from "./render"
 import { sum } from "./sum";
-import { clear_w_b, MLP, update_w_b, 反向传播 } from "./T";
+import { MLP, Neuron, 反向传播 } from "./T";
 
 // Sigmoid 导数函数
 const sigmoidDerivative = (x: number) => {
@@ -14,11 +14,13 @@ const sigmoid = (x: number) => 1 / (1 + Math.exp(-x))
 
 const new_MLP = (arr: number[]): MLP =>
     arr.map((current, i) =>
-        Array.from({ length: current }, () => ({
-            w: new Float64Array(i === 0 ? 0 : arr[i - 1]).fill(1),
-            b: 1,
-            d_w: [],
-            d_b: [],
+        Array.from({ length: current }, () => (<Neuron>{
+            w: new Float64Array(i === 0 ? 0 : arr[i - 1]).map(() => Math.random()),
+            b: Math.random(),
+            d_w: new Float64Array(i === 0 ? 0 : arr[i - 1]).fill(0),
+            d_b: 0,
+            d_w_废弃_不用_arr: [],
+            d_b_废弃_不用_arr: [],
             output: 0,
         })))
 
@@ -35,14 +37,46 @@ const 正向计算 = (mlp: MLP, data: number[]) => {
     }
 }
 
+const clear_w_b = (mlp: MLP) =>
+    mlp.forEach(layer => layer.forEach(neuron => {
+        neuron.d_w.fill(0)
+        neuron.d_b = 0
+        neuron.d_w_废弃_不用_arr = []
+        neuron.d_b_废弃_不用_arr = []
+    }))
 
+const push_w_b = (mlp: MLP) =>
+    mlp.forEach(layer => layer.forEach(neuron => {
+        neuron.d_w_废弃_不用_arr.push(neuron.d_w)
+        neuron.d_b_废弃_不用_arr.push(neuron.d_b)
+    }))
+
+const set_w_b_平均 = (mlp: MLP) =>
+    mlp.forEach(layer => layer.forEach(neuron => {
+        const size = neuron.d_b_废弃_不用_arr.length
+        neuron.d_w = neuron.d_w_废弃_不用_arr[0].map((_, k) => {
+            return sum(neuron.d_w_废弃_不用_arr.map((_, i) => neuron.d_w_废弃_不用_arr[i][k])) / size
+        })
+        neuron.d_b = sum(neuron.d_b_废弃_不用_arr) / size
+    }))
+
+const update_w_b = (mlp: MLP) => {
+    mlp.forEach(layer => layer.forEach(neuron => {
+        neuron.w = neuron.w.map((v, i) => v - neuron.d_w[i] * 0.01)
+        neuron.b = neuron.b - neuron.d_b * 0.01
+    }))
+}
 
 const mlp = new_MLP([28 * 28, 6, 6, 6, 10])
 
 const fx = (index: number) => {
     const d = data.training[index]
+    clear_w_b(mlp)
     正向计算(mlp, d.input)
     反向传播(mlp, d.output)
+    push_w_b(mlp)
+    set_w_b_平均(mlp)
+    update_w_b(mlp)
     render(mlp)
 }
 
@@ -53,7 +87,9 @@ window.a0 = () => {
             const d = data.training[index]
             正向计算(mlp, d.input)
             反向传播(mlp, d.output)
+            push_w_b(mlp)
         }
+        set_w_b_平均(mlp)
         update_w_b(mlp)
     }
     fx(Math.floor(Math.random() * 10))
