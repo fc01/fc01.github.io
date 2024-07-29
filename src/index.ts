@@ -31,9 +31,8 @@ const new_MLP = (arr: number[]): MLP => ({
 
 
 const 计算 = (mlp: MLP, data: number[]) => {
-    //
-    const first = mlp.layers[0].neurons
-    first.forEach((v, i) => v.output = data[i])
+    //    
+    mlp.layers[0].neurons.forEach((v, i) => v.output = data[i])
 
     for (let i = 1; i < mlp.layers.length; i++) {
         const prev = mlp.layers[i - 1].neurons
