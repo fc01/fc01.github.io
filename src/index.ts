@@ -49,7 +49,7 @@ for (let i = 0; i < config.inputSize; i++) {
 }
 
 // 绘制隐藏层
-let prevLayerX = inputLayerX + config.inputSize * config.neuronWidth + config.layerSpacing * 5;
+let prevLayerX = inputLayerX + config.inputSize * config.neuronWidth + config.layerSpacing * 3;
 const hiddenLayerY = (height - Math.max(...config.hiddenLayers) * config.neuronHeight) / 2;
 
 const hiddenLayers: { x: number, y: number }[][] = [];
