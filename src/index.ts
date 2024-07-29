@@ -13,11 +13,7 @@ const sigmoid = (x: number) => 1 / (1 + Math.exp(-x))
 //     return sig * (1 - sig);
 // }
 
-const sum = (arr: number[]) => {
-    let sum = 0
-    arr.forEach(v => sum += v)
-    return sum
-}
+const sum = (arr: number[]) => arr.reduce((prev, v) => prev + v, 0)
 
 const new_MLP = (arr: number[]): MLP => ({
     layers: arr.map((current, i) => {
@@ -36,17 +32,16 @@ const new_MLP = (arr: number[]): MLP => ({
 
 const 计算 = (mlp: MLP, data: number[]) => {
     //
-    mlp.layers[0].neurons.forEach((v, i) => v.output = data[i])
+    const first = mlp.layers[0].neurons
+    first.forEach((neuron, i) => neuron.output = data[i])
 
     for (let i = 1; i < mlp.layers.length; i++) {
-        const prev = mlp.layers[i - 1]
-        const current = mlp.layers[i]
+        const prev = mlp.layers[i - 1].neurons
+        const current = mlp.layers[i].neurons
 
-        //layer计算
-        current.neurons.forEach(v => {
-            //neuron计算
-            v.output = sigmoid(
-                sum(prev.neurons.map((vv, i) => vv.output * v.w[i])) + v.b
+        current.forEach(neuron => {
+            neuron.output = sigmoid(
+                sum(prev.map((v, i) => v.output * neuron.w[i])) + neuron.b
             )
         })
     }
@@ -97,9 +92,9 @@ const mlp = new_MLP([28 * 28, 10, 10, 10, 10])
 
 
 
-setInterval(() => {
-    render(mlp)
+setInterval(() => {    
     const v = data.training[0]
     计算(mlp, v.input)
     反向(mlp, v.output)
+    render(mlp)
 }, 1)
