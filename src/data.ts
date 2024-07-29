@@ -4,8 +4,7 @@ type T = {
     input: number[] //784
     output: number[] //10
 }
-const data = mnist.set(8000, 2000) as {
+export const data = mnist.set(8000, 2000) as {
     training: T[]
     test: T[]
-}
-console.log(data)
+} 

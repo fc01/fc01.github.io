@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+import { data } from './data';
 
 // 配置对象
 const config = {
@@ -26,27 +27,17 @@ const svg = d3.select('body').append('svg')
 const inputLayerX = 20
 const inputLayerY = 20
 
-const inputNeurons: { x: number, y: number }[][] = [];
+const inputNeurons: { x: number, y: number, setColor: (color: string) => void }[][] = [];
 for (let i = 0; i < config.inputSize; i++) {
     inputNeurons[i] = [];
     for (let j = 0; j < config.inputSize; j++) {
         const x = inputLayerX + j * config.neuronWidth;
         const y = inputLayerY + i * config.neuronHeight;
-
-        setTimeout(() => {
-            svg.append('rect')
-                .attr('x', x)
-                .attr('y', y)
-                .attr('width', config.neuronWidth)
-                .attr('height', config.neuronHeight)
-                .attr('stroke', 'black')
-                .attr('fill', config.inputLayerColor);
-        }, 10);
-
-
-        inputNeurons[i].push({ x, y });
+        inputNeurons[i].push({ x, y, setColor: () => { } });
     }
 }
+
+
 
 // 绘制隐藏层
 let prevLayerX = inputLayerX + config.inputSize * config.neuronWidth + config.layerSpacing * 3;
@@ -141,4 +132,26 @@ hiddenLayers[hiddenLayers.length - 1].forEach(hiddenNeuron => {
             .attr('stroke', 'black')
             .attr('stroke-width', 1);
     });
+})
+
+
+
+for (let i = 0; i < config.inputSize; i++) {
+    for (let j = 0; j < config.inputSize; j++) {
+        const x = svg.append('rect')
+            .attr('x', inputNeurons[i][j].x)
+            .attr('y', inputNeurons[i][j].y)
+            .attr('width', config.neuronWidth)
+            .attr('height', config.neuronHeight)
+            .attr('stroke', 'black')
+            .attr('fill', config.inputLayerColor);
+
+        inputNeurons[i][j].setColor = color => {
+            x.attr('fill', color);
+        }
+    }
+}
+ 
+data.training[0].input.forEach((v, i) => {
+    inputNeurons[Math.floor(i / 28)][i % 28].setColor(v > 0 ? '#cc66ff' : '#ffffff')
 })
