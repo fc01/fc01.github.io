@@ -22,42 +22,33 @@ const sigmoidDerivative = (output: number): number => {
 }
 
 // 反向传播函数  target是实际需要的输出
-export const 反向传播 = (mlp: MLP, target: number[]) => {
-    // 计算输出层的 d_w 和 d_b
-    const outputLayer = mlp[mlp.length - 1];
 
-    for (let i = 0; i < outputLayer.length; i++) {
-        const neuron = outputLayer[i];
-        // 计算输出层误差
-        const error = target[i] - neuron.output;
-        // 计算输出层的 d_b
-        neuron.d_b = error * sigmoidDerivative(neuron.output);
-        // 计算输出层的 d_w
-        neuron.d_w = neuron.w.map((w, index) => neuron.d_b * mlp[mlp.length - 2][index].output);
-    }
 
-    // 计算隐藏层的 d_w 和 d_b
-    for (let l = mlp.length - 2; l > 0; l--) {
-        const layer = mlp[l];
-        const nextLayer = mlp[l + 1];
-
-        for (let i = 0; i < layer.length; i++) {
-            const neuron = layer[i];
-            // 初始化 d_b 和 d_w
-            neuron.d_b = 0;
-            neuron.d_w = new Float64Array(neuron.w.length);
-
-            // 计算每个神经元的误差
-            for (let j = 0; j < nextLayer.length; j++) {
-                const nextNeuron = nextLayer[j];
-                const error = nextNeuron.d_b * nextNeuron.w[i];
-                neuron.d_b += error * sigmoidDerivative(neuron.output);
-                neuron.d_w = neuron.d_w.map((val, index) => val + neuron.d_b * (l > 1 ? mlp[l - 1][index].output : 1));
-            }
-        }
+const set_dw = (mlp: MLP, layerIndex: number, neuronIndex: number, X: number) => {
+    const current = mlp[layerIndex][neuronIndex]
+    for (let i = 0; i < current.w.length; i++) {
+        const prev = mlp[layerIndex - 1][i]
+        current.d_w[i] = X * (1 - current.output) * prev.output
     }
 }
 
+export const 反向传播 = (mlp: MLP, target: number[]) => {
+
+    target.forEach((y, i) => {
+        const neuron = mlp[mlp.length - 1][i]
+        const X = (neuron.output - y) * neuron.output
+        set_dw(mlp, mlp.length - 1, i, X)
+
+        //
+        const XX = neuron.d_w[i] * neuron.w[i]
+        for (let li = mlp.length - 2; li >= 1; li--) {
+            const test = mlp[li]
+            for (let i = 0; i < test.length; i++) {
+                set_dw(mlp, mlp.length - 2, i, XX)
+            }
+        }
+    })
+}
 
 
 
