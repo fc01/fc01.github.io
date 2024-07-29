@@ -77,10 +77,10 @@ const fx = (index: number) => {
     render(mlp)
 }
 
-window.a0 = () => {
+window.aa = () => {
     for (let i = 0; i < 100; i++) {
         clear_w_b(mlp)
-        for (let index = 0; index < 2; index++) {
+        for (let index = 0; index < 3; index++) {
             const d = data.training[index]
             正向计算(mlp, d.input)
             反向传播(mlp, d.output)
@@ -89,8 +89,9 @@ window.a0 = () => {
         set_w_b_平均(mlp)
         update_w_b(mlp)
     }
-    fx(Math.floor(Math.random() * 2))
+    fx(Math.floor(Math.random() * 3))
 }
 
-window.a1 = () => fx(0)
-window.a2 = () => fx(1)
+window.a0 = () => fx(0)
+window.a1 = () => fx(1)
+window.a2 = () => fx(2)
