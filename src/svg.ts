@@ -7,8 +7,8 @@ const config = {
     outputSize: 10,            // 输出层有 10 个神经元
     neuronWidth: 20,           // 神经元矩形宽度
     neuronHeight: 20,          // 神经元矩形高度
-    layerSpacing: 100,         // 层之间的水平间距
-    neuronSpacing: 8,         // 神经元之间的垂直间距
+    layerSpacing: 200,         // 层之间的水平间距
+    neuronSpacing: 16,         // 神经元之间的垂直间距
     inputLayerColor: '#ff9999', // 输入层神经元颜色
     hiddenLayerColor: '#99ff99', // 隐藏层神经元颜色
     outputLayerColor: '#9999ff' // 输出层神经元颜色
@@ -37,7 +37,7 @@ for (let i = 0; i < config.inputSize * config.inputSize; i++) {
 }
 
 // 绘制隐藏层
-let prevLayerX = inputLayerX + config.inputSize * config.neuronWidth + config.layerSpacing * 3;
+let prevLayerX = inputLayerX + config.inputSize * config.neuronWidth + config.layerSpacing * 1.5;
 const hiddenLayerY = (height - Math.max(...config.hiddenLayers) * config.neuronHeight) / 2;
 
 const hiddenLayers: { x: number, y: number }[][] = [];
