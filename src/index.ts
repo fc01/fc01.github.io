@@ -23,11 +23,10 @@ const svg = d3.select('body').append('svg')
     .attr('height', height);
 
 // 绘制输入层
-const inputLayerX = 50
-const inputLayerY = (height - config.inputSize * config.neuronHeight) / 2;
+const inputLayerX = 20
+const inputLayerY = 20
 
 const inputNeurons: { x: number, y: number }[][] = [];
-
 for (let i = 0; i < config.inputSize; i++) {
     inputNeurons[i] = [];
     for (let j = 0; j < config.inputSize; j++) {
