@@ -3,8 +3,10 @@ import { sum } from "./sum"
 export type Neuron = {
     w: Float64Array
     b: number
-    d_w: Float64Array[]
-    d_b: number[]
+    d_w: Float64Array
+    d_b: number
+    d_w_arr: Float64Array[]
+    d_b_arr: number[]
     output: number //输出缓存
 }
 export type Layer = Neuron[]
@@ -12,27 +14,29 @@ export type MLP = Layer[] //第1层是 输入层 output直接有数据 最后一
 
 export const clear_w_b = (mlp: MLP) =>
     mlp.forEach(layer => layer.forEach(neuron => {
-        neuron.d_w = []
-        neuron.d_b = []
+        neuron.d_w.fill(0)
+        neuron.d_b = 0
+        neuron.d_w_arr = []
+        neuron.d_b_arr = []
     }))
 
-const push_w_b = (mlp: MLP, w: Float64Array, b: number) =>
+export const push_w_b = (mlp: MLP, w: Float64Array, b: number) =>
     mlp.forEach(layer => layer.forEach(neuron => {
-        neuron.d_w.push(w)
-        neuron.d_b.push(b)
+        neuron.d_w_arr.push(neuron.d_w)
+        neuron.d_b_arr.push(neuron.d_b)
     }))
 
 export const update_w_b = (mlp: MLP) => {
 
     mlp.forEach(layer => layer.forEach(neuron => {
-        const size = neuron.d_b.length
+        const size = neuron.d_b_arr.length
 
         const dw = new Float64Array(neuron.w.length)
         dw.forEach((_, i) => {
-            dw[i] = sum(neuron.d_w.map(v => v[i])) / size
+            dw[i] = sum(neuron.d_w_arr.map(v => v[i])) / size
         })
 
-        const db = sum(neuron.d_b) / size
+        const db = sum(neuron.d_b_arr) / size
 
         neuron.w = neuron.w.map((vv, i) => vv - dw[i] * 0.001)
         neuron.b = neuron.b - db * 0.001
@@ -69,8 +73,8 @@ export const 反向传播 = (mlp: MLP, target: number[]) => {
 
     // 计算输出层每个神经元的梯度
     outputLayer.forEach((neuron, i) => {
-        neuron.d_b.push(outputGradients[i]);
-        neuron.d_w.push(new Float64Array(neuron.w.length).fill(outputGradients[i]));
+        neuron.d_b_arr.push(outputGradients[i]);
+        neuron.d_w_arr.push(new Float64Array(neuron.w.length).fill(outputGradients[i]));
     });
 
     // 从输出层开始反向传播
@@ -81,11 +85,11 @@ export const 反向传播 = (mlp: MLP, target: number[]) => {
         currentLayer.forEach((neuron, i) => {
             const nextLayerWeights = nextLayer.map(nextNeuron => nextNeuron.w[i]);
             const nextLayerGradients = nextLayer.reduce((acc, nextNeuron, j) => {
-                return acc + nextNeuron.d_b.reduce((sum, d_b) => sum + d_b * nextLayerWeights[j], 0);
+                return acc + nextNeuron.d_b_arr.reduce((sum, d_b) => sum + d_b * nextLayerWeights[j], 0);
             }, 0);
 
-            neuron.d_b.push(nextLayerGradients);
-            neuron.d_w.push(new Float64Array(neuron.w.length).fill(nextLayerGradients));
+            neuron.d_b_arr.push(nextLayerGradients);
+            neuron.d_w_arr.push(new Float64Array(neuron.w.length).fill(nextLayerGradients));
         });
     }
 
