@@ -1,15 +1,16 @@
 import { data } from "./data"
 import { hiddenLayers, inputNeurons, outputNeurons } from "./svg"
+import { Layer, MLP, Neuron } from "./T";
 
 
 // Sigmoid 函数
 const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
 
-// Sigmoid 导数函数
-const sigmoidDerivative = (x: number) => {
-    const sig = sigmoid(x);
-    return sig * (1 - sig);
-}
+// // Sigmoid 导数函数
+// const sigmoidDerivative = (x: number) => {
+//     const sig = sigmoid(x);
+//     return sig * (1 - sig);
+// }
 
 const sum = (arr: number[]) => {
     let sum = 0
@@ -18,111 +19,95 @@ const sum = (arr: number[]) => {
 }
 const Arr = <T>(size: number, f: (i: number) => T) => new Array(size).fill(0).map(f)
 
-class Neuron {
-    d_w: number[]
-    w: number[]
-    b = 0// Math.random()
-    output = 0
+const new_Neuron = (size: number): Neuron => ({
+    d_w: Arr(size, () => 0),
+    w: Arr(size, Math.random),
+    b: 0,// Math.random()
+    output: 0,
+})
 
-    constructor(size: number) {
-        this.d_w = Arr(size, () => 0)
-        this.w = Arr(size, Math.random)
+const new_Layer = (prev: number, current: number): Layer => ({
+    neurons: Arr(current, () => new_Neuron(prev)),
+})
+
+const new_MLP = (arr: number[]): MLP => {
+    let mlp: MLP = { layers: [] }
+    for (let i = 0; i < arr.length; i++) {
+        mlp.layers[i] = new_Layer(i === 0 ? 0 : arr[i - 1], arr[i])
     }
-
-    计算(prev: Neuron[]) {
-        this.output = sigmoid(sum(prev.map((v, i) => v.output * this.w[i])) + this.b)
-    }
-    clearW() { this.d_w = this.d_w.map(() => 0) }
-    updateW() { this.w = this.w.map((v, i) => v - this.d_w[i] * 0.01) }
-}
-
-class Layer {
-    neurons: Neuron[]
-
-    constructor(prev: number, current: number) {
-        this.neurons = Arr(current, () => new Neuron(prev))
-    }
-
-    计算(prev: Layer) {
-        this.neurons.forEach(v => v.计算(prev.neurons))
-    }
-
-    clearW() { this.neurons.forEach(v => v.clearW()) }
-    updateW() { this.neurons.forEach(v => v.updateW()) }
+    return mlp
 }
 
 
-class MLP {
-    layers: Layer[] = []
+const 计算 = (mlp: MLP, data: number[]) => {
+    //
+    mlp.layers[0].neurons.forEach((v, i) => v.output = data[i])
 
-    constructor(arr: number[]) {
-        for (let i = 0; i < arr.length; i++) {
-            this.layers[i] = new Layer(i === 0 ? 0 : arr[i - 1], arr[i])
-        }
-    }
+    for (let i = 1; i < mlp.layers.length; i++) {
+        const prev = mlp.layers[i - 1]
+        const current = mlp.layers[i]
 
-    计算(data: number[]) {
-        //
-        this.layers[0].neurons.forEach((v, i) => v.output = data[i])
-
-
-        for (let i = 1; i < this.layers.length; i++) {
-            const prev = this.layers[i - 1]
-            const current = this.layers[i]
-            current.计算(prev)
-        }
-    }
-
-    clearW() {
-        for (let i = 1; i < this.layers.length; i++) {
-            this.layers[i].clearW()
-        }
-    }
-
-    updateW() {
-        for (let i = 1; i < this.layers.length; i++) {
-            this.layers[i].updateW()
-        }
-    }
-
-    反向(arr: number[]) {
-        this.clearW()
-
-        arr.forEach((y, i) => {
-            const neuron = this.layers[this.layers.length - 1].neurons[i]
-            const X = (neuron.output - y) * neuron.output
-            this.set_dw(this.layers.length - 1, i, X)
-
-            //
-            const XX = neuron.d_w[i] * neuron.w[i]
-            for (let li = this.layers.length - 2; li >= 1; li--) {
-                const test = this.layers[li].neurons
-                for (let i = 0; i < test.length; i++) {
-                    this.set_dw(this.layers.length - 2, i, XX)
-                }
-            }
+        //layer计算
+        current.neurons.forEach(v => {
+            //neuron计算
+            v.output = sigmoid(
+                sum(prev.neurons.map((vv, i) => vv.output * v.w[i])) + v.b
+            )
         })
-
-        this.updateW()
     }
+}
 
-    set_dw(layerIndex: number, neuronIndex: number, X: number) {
-        const current = this.layers[layerIndex].neurons[neuronIndex]
-        for (let i = 0; i < current.w.length; i++) {
-            const prev = this.layers[layerIndex - 1].neurons[i]
-            current.d_w[i] = X * (1 - current.output) * prev.output
+const clearW = (mlp: MLP) => {
+    for (let i = 1; i < mlp.layers.length; i++) {
+        mlp.layers[i].neurons.forEach(v => {
+            v.d_w = v.d_w.map(() => 0)
+
+        })
+    }
+}
+
+const updateW = (mlp: MLP) => {
+    for (let i = 1; i < mlp.layers.length; i++) {
+        mlp.layers[i].neurons.forEach(v => {
+            v.w = v.w.map((vv, i) => vv - v.d_w[i] * 0.01)
+        })
+    }
+}
+
+const set_dw = (mlp: MLP, layerIndex: number, neuronIndex: number, X: number) => {
+    const current = mlp.layers[layerIndex].neurons[neuronIndex]
+    for (let i = 0; i < current.w.length; i++) {
+        const prev = mlp.layers[layerIndex - 1].neurons[i]
+        current.d_w[i] = X * (1 - current.output) * prev.output
+    }
+}
+
+const 反向 = (mlp: MLP, arr: number[]) => {
+    clearW(mlp)
+
+    arr.forEach((y, i) => {
+        const neuron = mlp.layers[mlp.layers.length - 1].neurons[i]
+        const X = (neuron.output - y) * neuron.output
+        set_dw(mlp, mlp.layers.length - 1, i, X)
+
+        //
+        const XX = neuron.d_w[i] * neuron.w[i]
+        for (let li = mlp.layers.length - 2; li >= 1; li--) {
+            const test = mlp.layers[li].neurons
+            for (let i = 0; i < test.length; i++) {
+                set_dw(mlp, mlp.layers.length - 2, i, XX)
+            }
         }
-    }
+    })
 
-
-
+    updateW(mlp)
 }
 
 
 
 
 
-const mlp = new MLP([28 * 28, 10, 10, 10, 10])
+const mlp = new_MLP([28 * 28, 10, 10, 10, 10])
 
 
 const render = () => {
@@ -156,6 +141,6 @@ const render = () => {
 setInterval(() => {
     render()
     const v = data.training[0]
-    mlp.计算(v.input)
-    mlp.反向(v.output)
+    计算(mlp, v.input)
+    反向(mlp, v.output)
 }, 1)
