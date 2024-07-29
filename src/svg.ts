@@ -40,7 +40,7 @@ for (let i = 0; i < config.inputSize * config.inputSize; i++) {
 let prevLayerX = inputLayerX + config.inputSize * config.neuronWidth + config.layerSpacing * 1.5;
 const hiddenLayerY = (height - Math.max(...config.hiddenLayers) * config.neuronHeight) / 2;
 
-const hiddenLayers: { x: number, y: number }[][] = [];
+export const hiddenLayers: { x: number, y: number, setColor: (color: string) => void }[][] = [];
 config.hiddenLayers.forEach((layerSize, layerIndex) => {
     const layerX = prevLayerX;
     const layerY = hiddenLayerY;
@@ -51,7 +51,7 @@ config.hiddenLayers.forEach((layerSize, layerIndex) => {
         const x = layerX;
         const y = layerY + i * (config.neuronHeight + config.neuronSpacing);
 
-        svg.append('rect')
+        const xx = svg.append('rect')
             .attr('x', x)
             .attr('y', y)
             .attr('width', config.neuronWidth)
@@ -59,7 +59,7 @@ config.hiddenLayers.forEach((layerSize, layerIndex) => {
             .attr('stroke', 'black')
             .attr('fill', config.hiddenLayerColor);
 
-        hiddenLayers[layerIndex].push({ x, y });
+        hiddenLayers[layerIndex].push({ x, y, setColor: color => xx.attr('fill', color) });
     }
 
     prevLayerX += config.neuronWidth + config.layerSpacing;
