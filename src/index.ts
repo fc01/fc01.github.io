@@ -155,7 +155,7 @@ const render = () => {
 
 setInterval(() => {
     render()
-    const v = data.training[Math.floor(Math.random() * 8000)]
+    const v = data.training[0]
     mlp.计算(v.input)
     mlp.反向(v.output)
 }, 1)
