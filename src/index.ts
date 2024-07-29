@@ -23,7 +23,7 @@ const new_MLP = (arr: number[]): MLP => ({
     layers: arr.map((current, i) => {
         const prev = i === 0 ? 0 : arr[i - 1]
         return {
-            neurons: new Array(current).fill(0).map(() => ({
+            neurons: Array.from({ length: current }, () => ({
                 d_w: new Float64Array(prev),
                 w: new Float64Array(prev),
                 b: 0,
