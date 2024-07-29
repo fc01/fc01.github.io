@@ -72,13 +72,13 @@ config.hiddenLayers.forEach((layerSize, layerIndex) => {
 const outputLayerX = prevLayerX + config.layerSpacing;
 const outputLayerY = (height - config.outputSize * config.neuronHeight) / 2;
 
-const outputNeurons: { x: number, y: number }[] = [];
+export const outputNeurons: { x: number, y: number, setColor: (color: string) => void }[] = [];
 
 for (let i = 0; i < config.outputSize; i++) {
     const x = outputLayerX;
     const y = outputLayerY + i * (config.neuronHeight + config.neuronSpacing);
 
-    svg.append('rect')
+    const xx = svg.append('rect')
         .attr('x', x)
         .attr('y', y)
         .attr('width', config.neuronWidth)
@@ -86,7 +86,7 @@ for (let i = 0; i < config.outputSize; i++) {
         .attr('stroke', 'black')
         .attr('fill', config.outputLayerColor);
 
-    outputNeurons.push({ x, y });
+    outputNeurons.push({ x, y, setColor: color => xx.attr('fill', color) });
 }
 
 // 绘制输入层到隐藏层的连接线
@@ -138,7 +138,7 @@ hiddenLayers[hiddenLayers.length - 1].forEach(hiddenNeuron => {
 
 for (let i = 0; i < config.inputSize; i++) {
     for (let j = 0; j < config.inputSize; j++) {
-        const x = svg.append('rect')
+        const xx = svg.append('rect')
             .attr('x', inputNeurons[i][j].x)
             .attr('y', inputNeurons[i][j].y)
             .attr('width', config.neuronWidth)
@@ -147,7 +147,7 @@ for (let i = 0; i < config.inputSize; i++) {
             .attr('fill', config.inputLayerColor);
 
         inputNeurons[i][j].setColor = color => {
-            x.attr('fill', color);
+            xx.attr('fill', color);
         }
     }
 }

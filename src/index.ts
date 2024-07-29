@@ -1,6 +1,12 @@
 import { data } from "./data"
-import { inputNeurons } from "./svg"
+import { inputNeurons, outputNeurons } from "./svg"
 
-data.training[0].input.forEach((v, i) => {
+const v = data.training[0]
+
+v.input.forEach((v, i) => {
     inputNeurons[Math.floor(i / 28)][i % 28].setColor(v > 0 ? '#cc66ff' : '#ffffff')
+})
+
+v.output.forEach((v, i) => {
+    outputNeurons[i].setColor(v > 0 ? '#cc66ff' : '#ffffff')
 })
