@@ -16,8 +16,8 @@ const clear_w_b = (mlp: MLP) =>
 
 const update_w_b = (mlp: MLP) =>
     mlp.forEach(layer => layer.forEach(neuron => {
-        neuron.w = neuron.w.map((vv, i) => vv - neuron.d_w[i] * 0.01)
-        neuron.b = neuron.b - neuron.d_b
+        neuron.w = neuron.w.map((vv, i) => vv - neuron.d_w[i] * 0.001)
+        neuron.b = neuron.b - neuron.d_b * 0.001
     }))
 
 //output已经计算好输出值了
@@ -28,23 +28,23 @@ const update_w_b = (mlp: MLP) =>
 export const 反向传播 = (mlp: MLP, target: number[]) => {
     clear_w_b(mlp); // 清除所有神经元的梯度
 
-    // 计算输出层的梯度
+    // 1. 计算输出层的梯度
     const outputLayer = mlp[mlp.length - 1]; // 获取输出层
     const previousLayer = mlp[mlp.length - 2]; // 获取前一层（隐藏层）
 
-    // 计算输出层的误差
+    // 计算每个输出神经元的误差
     const errors = outputLayer.map((neuron, index) => neuron.output - target[index]);
 
     // 更新输出层神经元的梯度
     outputLayer.forEach((neuron, j) => {
         // 更新偏置的梯度
-        neuron.d_b = errors[j]; // 对于 MSE，偏置的梯度直接是误差
+        neuron.d_b = errors[j];
 
         // 更新权重的梯度
         neuron.d_w = neuron.w.map((_, k) => errors[j] * (previousLayer[k]?.output || 0));
     });
 
-    // 反向传播误差到隐藏层
+    // 2. 反向传播误差到隐藏层
     for (let i = mlp.length - 2; i >= 0; i--) {
         const currentLayer = mlp[i]; // 当前层
         const nextLayer = mlp[i + 1]; // 下一层
