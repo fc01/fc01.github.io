@@ -4,7 +4,7 @@ import { MLP } from './T';
 // 配置对象
 const config = {
     inputSize: 28,             // 输入层的大小为 28x28
-    hiddenLayers: [6, 6, 6], // 3 个隐藏层，每层 10 个神经元
+    hiddenLayers: [10, 10, 10], // 3 个隐藏层，每层 10 个神经元
     outputSize: 10,            // 输出层有 10 个神经元
     neuronWidth: 20,           // 神经元矩形宽度
     neuronHeight: 20,          // 神经元矩形高度
