@@ -55,9 +55,9 @@ const push_w_b = (mlp: MLP) =>
 
 const set_w_b_平均 = (mlp: MLP) =>
     mlp.forEach(layer => layer.forEach(neuron => {
-        const size = neuron.d_b_废弃_不用_arr.length
+        // const size = neuron.d_b_废弃_不用_arr.length
         neuron.d_w = neuron.d_w.map((_, k) => {
-            return sum(neuron.d_w_废弃_不用_arr.map((_, i) => neuron.d_w_废弃_不用_arr[i][k])) // size
+            return sum(neuron.d_w_废弃_不用_arr.map((_, i) => neuron.d_w_废弃_不用_arr[i][k])) / neuron.d_w_废弃_不用_arr.length
         })
         neuron.d_b = sum(neuron.d_b_废弃_不用_arr) // size
     }))
