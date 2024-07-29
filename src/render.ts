@@ -4,11 +4,11 @@ import { MLP } from './T';
 // 配置对象
 const config = {
     inputSize: 28,             // 输入层的大小为 28x28
-    hiddenLayers: [10, 10, 10], // 3 个隐藏层，每层 10 个神经元
+    hiddenLayers: [10, 10, 10, 10], // 3 个隐藏层，每层 10 个神经元
     outputSize: 10,            // 输出层有 10 个神经元
     neuronWidth: 20,           // 神经元矩形宽度
     neuronHeight: 20,          // 神经元矩形高度
-    layerSpacing: 200,         // 层之间的水平间距
+    layerSpacing: 100,         // 层之间的水平间距
     neuronSpacing: 16,         // 神经元之间的垂直间距
     inputLayerColor: '#ff9999', // 输入层神经元颜色
     hiddenLayerColor: '#99ff99', // 隐藏层神经元颜色
