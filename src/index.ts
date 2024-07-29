@@ -38,13 +38,24 @@ const 正向计算 = (mlp: MLP, data: number[]) => {
 
 
 
-const mlp = new_MLP([28 * 28, 10, 10, 10, 10, 10])
+const mlp = new_MLP([28 * 28, 6, 6, 6, 10])
 
 const fx = (index: number) => {
     const d = data.training[index]
     for (let i = 0; i < 100; i++) {
         正向计算(mlp, d.input)
         反向传播(mlp, d.output)
+    }
+    render(mlp)
+}
+
+window.a0 = () => {
+    for (let index = 0; index < 10; index++) {
+        const d = data.training[index]
+        for (let i = 0; i < 100; i++) {
+            正向计算(mlp, d.input)
+            反向传播(mlp, d.output)
+        }
     }
     render(mlp)
 }

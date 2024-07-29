@@ -20,11 +20,12 @@ const update_w_b = (mlp: MLP) =>
         neuron.b = neuron.b - neuron.d_b * 0.001
     }))
 
+
 //output已经计算好输出值了
 //clear_w_b 和  update_w_b 中间 实现更新 d_w d_b 代码
 //误差函数 是 (target-output)的平方/2
+//链式求导
 //中文注释
-
 export const 反向传播 = (mlp: MLP, target: number[]) => {
     clear_w_b(mlp); // 清除所有神经元的梯度
 
@@ -37,10 +38,10 @@ export const 反向传播 = (mlp: MLP, target: number[]) => {
 
     // 更新输出层神经元的梯度
     outputLayer.forEach((neuron, j) => {
-        // 更新偏置的梯度
+        // 计算输出层偏置的梯度
         neuron.d_b = errors[j];
 
-        // 更新权重的梯度
+        // 计算输出层权重的梯度
         neuron.d_w = neuron.w.map((_, k) => errors[j] * (previousLayer[k]?.output || 0));
     });
 
@@ -52,7 +53,8 @@ export const 反向传播 = (mlp: MLP, target: number[]) => {
         currentLayer.forEach((neuron, j) => {
             // 计算当前层的偏置梯度
             neuron.d_b = nextLayer.reduce((sum, nextNeuron, k) => {
-                return sum + nextNeuron.d_w[j] * errors[k];
+                // 使用链式法则计算当前神经元的偏置梯度
+                return sum + nextNeuron.d_w[j] * (nextNeuron.output - target[k]);
             }, 0);
 
             // 计算当前层的权重梯度
@@ -62,3 +64,4 @@ export const 反向传播 = (mlp: MLP, target: number[]) => {
 
     update_w_b(mlp); // 使用计算的梯度更新权重和偏置
 }
+
