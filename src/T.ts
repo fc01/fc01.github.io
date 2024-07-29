@@ -21,44 +21,57 @@ const sigmoidDerivative = (output: number): number => {
     return output * (1 - output);
 }
 
-// 反向传播函数  target是实际需要的输出
-
-
+// Helper function to set d_w for a given neuron in a given layer
 const set_dw = (mlp: MLP, layerIndex: number, neuronIndex: number, X: number) => {
     const current = mlp[layerIndex][neuronIndex]
     for (let i = 0; i < current.w.length; i++) {
         const prev = mlp[layerIndex - 1][i]
-        current.d_w[i] = X * (1 - current.output) * prev.output
+        current.d_w[i] = X * sigmoidDerivative(current.output) * prev.output
     }
 }
 
+// 反向传播函数  target是实际需要的输出
 export const 反向传播 = (mlp: MLP, target: number[]) => {
-
+    // Output layer gradients
     target.forEach((y, i) => {
         const neuron = mlp[mlp.length - 1][i]
-        const X = (neuron.output - y) * neuron.output
-        set_dw(mlp, mlp.length - 1, i, X)
+        const error = neuron.output - y
+        const delta = error * sigmoidDerivative(neuron.output)
+        neuron.d_b = delta
 
-        //
-        const XX = neuron.d_w[i] * neuron.w[i]
-        for (let li = mlp.length - 2; li >= 1; li--) {
-            const test = mlp[li]
-            for (let i = 0; i < test.length; i++) {
-                set_dw(mlp, mlp.length - 2, i, XX)
-            }
+        for (let j = 0; j < neuron.w.length; j++) {
+            neuron.d_w[j] = delta * mlp[mlp.length - 2][j].output
         }
     })
+
+    // Hidden layer gradients
+    for (let li = mlp.length - 2; li > 0; li--) {
+        const layer = mlp[li]
+        const nextLayer = mlp[li + 1]
+
+        for (let ni = 0; ni < layer.length; ni++) {
+            const neuron = layer[ni]
+            let error = 0
+            for (let nextNeuron of nextLayer) {
+                error += nextNeuron.d_b * nextNeuron.w[ni]
+            }
+
+            const delta = error * sigmoidDerivative(neuron.output)
+            neuron.d_b = delta
+
+            for (let j = 0; j < neuron.w.length; j++) {
+                neuron.d_w[j] = delta * mlp[li - 1][j].output
+            }
+        }
+    }
 }
+
 
 
 
 
 
 //output已经计算好输出值了
-//链式求导
-//激活函数是sigmoid
-//计算输出层的 d_w 和 d_b
-//计算隐藏层的 d_w 和 d_b
-//中文注释 
-
-// 反向传播函数  target是实际需要的输出
+//链式求导  
+//反向传播函数 有bug 改一下
+//只需要返回 反向传播 函数

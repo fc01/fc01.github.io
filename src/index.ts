@@ -56,10 +56,10 @@ const push_w_b = (mlp: MLP) =>
 const set_w_b_平均 = (mlp: MLP) =>
     mlp.forEach(layer => layer.forEach(neuron => {
         const size = neuron.d_b_废弃_不用_arr.length
-        neuron.d_w = neuron.d_w_废弃_不用_arr[0].map((_, k) => {
-            return sum(neuron.d_w_废弃_不用_arr.map((_, i) => neuron.d_w_废弃_不用_arr[i][k])) / size
+        neuron.d_w = neuron.d_w.map((_, k) => {
+            return sum(neuron.d_w_废弃_不用_arr.map((_, i) => neuron.d_w_废弃_不用_arr[i][k])) // size
         })
-        neuron.d_b = sum(neuron.d_b_废弃_不用_arr) / size
+        neuron.d_b = sum(neuron.d_b_废弃_不用_arr) // size
     }))
 
 const update_w_b = (mlp: MLP) => {
@@ -73,25 +73,14 @@ const mlp = new_MLP([28 * 28, 10, 10, 10, 10])
 
 const fx = (index: number) => {
     const d = data.training[index]
-
     正向计算(mlp, d.input)
-
-    for (let i = 0; i < 100; i++) {
-        clear_w_b(mlp)
-        反向传播(mlp, d.output)
-        // push_w_b(mlp)
-        // set_w_b_平均(mlp)
-        update_w_b(mlp)
-    }
-
-
     render(mlp)
 }
 
 window.a0 = () => {
     for (let i = 0; i < 100; i++) {
         clear_w_b(mlp)
-        for (let index = 0; index < 10; index++) {
+        for (let index = 0; index < 2; index++) {
             const d = data.training[index]
             正向计算(mlp, d.input)
             反向传播(mlp, d.output)
@@ -100,8 +89,8 @@ window.a0 = () => {
         set_w_b_平均(mlp)
         update_w_b(mlp)
     }
-    fx(Math.floor(Math.random() * 10))
+    fx(Math.floor(Math.random() * 2))
 }
 
-window.a1 = () => fx(1)
-window.a2 = () => fx(2)
+window.a1 = () => fx(0)
+window.a2 = () => fx(1)
