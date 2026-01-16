@@ -717,21 +717,48 @@ const encodeWAV = (options) => {
   floatTo16BitPCM(view2, 44, interleaved);
   return new Blob([view2], { type: "audio/wav" });
 };
-let audioCtx;
-let sourceNode;
-let startTime = 0;
-let offsetTime = 0;
-const initContext = () => {
-  if (!audioCtx) {
-    audioCtx = new AudioContext();
+const audio = new Audio();
+audio.preload = "metadata";
+let currentSrcUrl = null;
+let decodeCtx;
+const getDecodeCtx = () => {
+  if (!decodeCtx) {
+    decodeCtx = new AudioContext();
   }
-  if (audioCtx.state === "suspended") {
-    audioCtx.resume();
-  }
-  return audioCtx;
+  return decodeCtx;
 };
+audio.addEventListener("play", () => setIsPlaying(true));
+audio.addEventListener("pause", () => setIsPlaying(false));
+audio.addEventListener("ended", () => setIsPlaying(false));
+audio.addEventListener("error", (e) => {
+  console.error("Audio error:", e);
+  setIsPlaying(false);
+});
+let rafId;
+const syncLoop = () => {
+  if (audio.paused) return;
+  const now = audio.currentTime;
+  const sel = selection();
+  if (now >= sel.end) {
+    audio.currentTime = sel.start;
+  }
+  setCurrentTime(audio.currentTime);
+  rafId = requestAnimationFrame(syncLoop);
+};
+audio.addEventListener("play", () => {
+  cancelAnimationFrame(rafId);
+  syncLoop();
+});
+audio.addEventListener("pause", () => {
+  cancelAnimationFrame(rafId);
+});
 const loadAudioFile = async (file) => {
-  const ctx = initContext();
+  if (currentSrcUrl) {
+    URL.revokeObjectURL(currentSrcUrl);
+  }
+  currentSrcUrl = URL.createObjectURL(file);
+  audio.src = currentSrcUrl;
+  const ctx = getDecodeCtx();
   const arrayBuffer = await file.arrayBuffer();
   const decoded = await ctx.decodeAudioData(arrayBuffer);
   batch(() => {
@@ -744,58 +771,28 @@ const loadAudioFile = async (file) => {
     setIsPlaying(false);
   });
 };
-const startPlayback = (startOffset) => {
-  const ctx = initContext();
-  const buffer = audioBuffer();
-  if (!buffer) return;
-  if (sourceNode) {
-    try {
-      sourceNode.stop();
-    } catch (e) {
-    }
-  }
-  sourceNode = ctx.createBufferSource();
-  sourceNode.buffer = buffer;
-  sourceNode.loop = true;
-  const sel = selection();
-  sourceNode.loopStart = sel.start;
-  sourceNode.loopEnd = sel.end;
-  sourceNode.connect(ctx.destination);
-  sourceNode.start(0, startOffset);
-  startTime = ctx.currentTime;
-  offsetTime = startOffset;
-  setIsPlaying(true);
-  startAnimationLoop();
-};
 const playAudio = () => {
   const sel = selection();
-  let startOffset = currentTime();
-  if (startOffset < sel.start || startOffset >= sel.end) {
-    startOffset = sel.start;
+  const curr = audio.currentTime;
+  if (curr < sel.start || curr >= sel.end) {
+    audio.currentTime = sel.start;
   }
-  startPlayback(startOffset);
+  audio.play().catch(console.error);
 };
 const playFromA = () => {
   const sel = selection();
-  startPlayback(sel.start);
+  audio.currentTime = sel.start;
+  audio.play().catch(console.error);
 };
 const playToB = () => {
   const sel = selection();
-  let startOffset = sel.end - 2;
-  if (startOffset < sel.start) {
-    startOffset = sel.start;
-  }
-  startPlayback(startOffset);
+  let start = sel.end - 2;
+  if (start < sel.start) start = sel.start;
+  audio.currentTime = start;
+  audio.play().catch(console.error);
 };
 const stopAudio = () => {
-  if (sourceNode) {
-    try {
-      sourceNode.stop();
-    } catch (e) {
-    }
-    sourceNode = void 0;
-  }
-  setIsPlaying(false);
+  audio.pause();
 };
 const exportSelection = () => {
   const buffer = audioBuffer();
@@ -811,27 +808,7 @@ const exportSelection = () => {
   a.click();
   URL.revokeObjectURL(url);
 };
-let rafId;
-const startAnimationLoop = () => {
-  cancelAnimationFrame(rafId);
-  const loop = () => {
-    if (!isPlaying() || !audioCtx) return;
-    const sel = selection();
-    const elapsed = audioCtx.currentTime - startTime;
-    let current = offsetTime + elapsed;
-    const duration2 = sel.end - sel.start;
-    if (duration2 > 0) {
-      while (current >= sel.end) {
-        current -= duration2;
-        startTime += duration2;
-      }
-    }
-    setCurrentTime(current);
-    rafId = requestAnimationFrame(loop);
-  };
-  rafId = requestAnimationFrame(loop);
-};
-var _tmpl$$3 = /* @__PURE__ */ template(`<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;transition:all 0.2s;cursor:pointer"><input type=file accept=audio/* style=display:none><div style=font-size:48px;margin-bottom:16px>🎵</div><div style=font-size:18px;color:#FFFFFF>Drag & Drop Audio File Here</div><div style=font-size:14px;color:#888;margin-top:8px>(MP3, WAV, FLAC, OGG)`);
+var _tmpl$$4 = /* @__PURE__ */ template(`<div style="width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;transition:all 0.2s;cursor:pointer"><input type=file accept=audio/* style=display:none><div style=font-size:48px;margin-bottom:16px>🎵</div><div style=font-size:18px;color:#FFFFFF>Drag & Drop Audio File Here</div><div style=font-size:14px;color:#888;margin-top:8px>(MP3, WAV, FLAC, OGG)`);
 const DropZone = () => {
   const [isDragging2, setIsDragging2] = createSignal(false);
   let fileInput;
@@ -858,7 +835,7 @@ const DropZone = () => {
     }
   };
   return (() => {
-    var _el$ = _tmpl$$3(), _el$2 = _el$.firstChild, _el$3 = _el$2.nextSibling, _el$4 = _el$3.nextSibling;
+    var _el$ = _tmpl$$4(), _el$2 = _el$.firstChild, _el$3 = _el$2.nextSibling, _el$4 = _el$3.nextSibling;
     _el$4.nextSibling;
     _el$.$$click = () => fileInput == null ? void 0 : fileInput.click();
     _el$.addEventListener("drop", handleDrop);
@@ -880,13 +857,7 @@ const DropZone = () => {
   })();
 };
 delegateEvents(["click"]);
-var _tmpl$$2 = /* @__PURE__ */ template(`<div style=width:100%;height:100%;display:flex;flex-direction:column;gap:12px><div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:40px;padding:8px 0;flex-shrink:0;white-space:nowrap"><div style=display:flex;gap:8px><button>View All</button><button>View AB</button></div><div style=display:flex;align-items:center;gap:8px><span title="View A (1s)"style=color:#00FF00;font-weight:bold;font-size:14px;cursor:pointer;user-select:none>View A (1s)</span><input type=text><span style=color:#FFFFFF;font-size:12px>s</span></div><div style=display:flex;align-items:center;gap:8px><span title="View B (1s)"style=color:#FF0000;font-weight:bold;font-size:14px;cursor:pointer;user-select:none>View B (1s)</span><input type=text><span style=color:#FFFFFF;font-size:12px>s</span></div></div><div style="flex:1;display:flex;flex-direction:column;min-height:0;border:1px solid var(--border-color);border-radius:4px;overflow:visible;background:#121212"><div style="height:28px;position:relative;background:#1E1E1E;border-bottom:1px solid var(--border-color);flex-shrink:0;overflow:visible"><div style=position:absolute;top:0;height:100%;width:1px;background:#00FF00;z-index:19></div><div title="A点 (Start)"style=position:absolute;top:0;height:100%;width:24px;background:#00FF00;color:#000;display:flex;justify-content:center;align-items:center;font-size:12px;font-weight:bold;cursor:col-resize;z-index:20;user-select:none>A</div><div style=position:absolute;top:0;height:100%;width:1px;background:#FF0000;z-index:19></div><div title="B点 (End)"style=position:absolute;top:0;height:100%;width:24px;transform:translateX(-100%);background:#FF0000;color:#FFF;display:flex;justify-content:center;align-items:center;font-size:12px;font-weight:bold;cursor:col-resize;z-index:20;user-select:none>B</div></div><div style=flex:1;position:relative;touch-action:none;background:#121212;overflow:visible><canvas style=width:100%;height:100%;display:block;position:absolute;top:0;left:0></canvas><div style=position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none><div style="position:absolute;top:0;left:0;height:100%;background:rgba(0, 0, 0, 0.6)"></div><div style="position:absolute;top:0;right:0;height:100%;background:rgba(0, 0, 0, 0.6)"></div><div style=position:absolute;top:0;width:1px;height:100%;background:#00FF00></div><div style=position:absolute;top:0;width:1px;height:100%;background:#FF0000></div><div style=position:absolute;top:0;width:1px;height:100%;background:#FFFFFF></div></div></div></div><div style=height:60px;position:relative;background-color:#1E1E1E;border-radius:4px;overflow:visible><canvas style=width:100%;height:100%;display:block;position:absolute;top:0;left:0></canvas><div style=position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none><div style="position:absolute;top:0;left:0;height:100%;background:rgba(0, 0, 0, 0.5)"></div><div style="position:absolute;top:0;right:0;height:100%;background:rgba(0, 0, 0, 0.5)"></div><div style=position:absolute;top:0;width:2px;height:100%;background:#00FF00;z-index:10></div><div style=position:absolute;top:0;width:2px;height:100%;background:#FF0000;z-index:10></div><div style="position:absolute;top:0;height:100%;border:2px solid #BB86FC;box-sizing:border-box;z-index:20">`);
-const parseTime = (str) => {
-  const num = parseFloat(str);
-  if (isNaN(num) || num < 0) return null;
-  return num;
-};
-const formatTime$1 = (time) => time.toFixed(3);
+var _tmpl$$3 = /* @__PURE__ */ template(`<div style=width:100%;height:100%;display:flex;flex-direction:column;gap:12px><div style="flex:1;display:flex;flex-direction:column;min-height:0;border:1px solid var(--border-color);border-radius:4px;overflow:visible;background:#121212"><div style="height:28px;position:relative;background:#1E1E1E;border-bottom:1px solid var(--border-color);flex-shrink:0;overflow:visible"><div style=position:absolute;top:0;height:100%;width:1px;background:#00FF00;z-index:19></div><div title="A点 (Start)"style=position:absolute;top:0;height:100%;width:24px;background:#00FF00;color:#000;display:flex;justify-content:center;align-items:center;font-size:12px;font-weight:bold;cursor:default;z-index:20;user-select:none>A</div><div style=position:absolute;top:0;height:100%;width:1px;background:#FF0000;z-index:19></div><div title="B点 (End)"style=position:absolute;top:0;height:100%;width:24px;transform:translateX(-100%);background:#FF0000;color:#FFF;display:flex;justify-content:center;align-items:center;font-size:12px;font-weight:bold;cursor:default;z-index:20;user-select:none>B</div></div><div style=flex:1;position:relative;touch-action:none;background:#121212;overflow:visible><canvas style=width:100%;height:100%;display:block;position:absolute;top:0;left:0></canvas><div style=position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none><div style="position:absolute;top:0;left:0;height:100%;background:rgba(0, 0, 0, 0.6)"></div><div style="position:absolute;top:0;right:0;height:100%;background:rgba(0, 0, 0, 0.6)"></div><div style=position:absolute;top:0;width:1px;height:100%;background:#00FF00></div><div style=position:absolute;top:0;width:1px;height:100%;background:#FF0000></div><div style=position:absolute;top:0;width:1px;height:100%;background:#FFFFFF></div></div></div></div><div style=height:60px;position:relative;background-color:#1E1E1E;border-radius:4px;overflow:visible><canvas style=width:100%;height:100%;display:block;position:absolute;top:0;left:0></canvas><div style=position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none><div style="position:absolute;top:0;left:0;height:100%;background:rgba(0, 0, 0, 0.5)"></div><div style="position:absolute;top:0;right:0;height:100%;background:rgba(0, 0, 0, 0.5)"></div><div style=position:absolute;top:0;width:2px;height:100%;background:#00FF00;z-index:10></div><div style=position:absolute;top:0;width:2px;height:100%;background:#FF0000;z-index:10></div><div style="position:absolute;top:0;height:100%;border:2px solid #BB86FC;box-sizing:border-box;z-index:20">`);
 const WaveformEditor = () => {
   let mainCanvasRef;
   let mainContainerRef;
@@ -897,8 +868,6 @@ const WaveformEditor = () => {
   const [dragStartX, setDragStartX] = createSignal(0);
   const [dragStartView, setDragStartView] = createSignal(view());
   const [minimapCursor, setMinimapCursor] = createSignal("default");
-  const [inputA, setInputA] = createSignal(formatTime$1(selection().start));
-  const [inputB, setInputB] = createSignal(formatTime$1(selection().end));
   const [minimapWidth, setMinimapWidth] = createSignal(0);
   onMount(() => {
     if (minimapContainerRef) {
@@ -913,80 +882,6 @@ const WaveformEditor = () => {
       onCleanup(() => ro.disconnect());
     }
   });
-  createEffect(() => {
-    setInputA(formatTime$1(selection().start));
-  });
-  createEffect(() => {
-    setInputB(formatTime$1(selection().end));
-  });
-  const handleAChange = (value) => {
-    setInputA(value);
-  };
-  const handleABlur = () => {
-    const parsed = parseTime(inputA());
-    if (parsed !== null && parsed >= 0 && parsed < selection().end - 1e-3) {
-      setSelection({
-        ...selection(),
-        start: Math.max(0, parsed)
-      });
-    } else {
-      setInputA(formatTime$1(selection().start));
-    }
-  };
-  const handleAKeyDown = (e) => {
-    if (e.key === "Enter") {
-      handleABlur();
-      e.target.blur();
-    }
-  };
-  const handleBChange = (value) => {
-    setInputB(value);
-  };
-  const handleBBlur = () => {
-    const parsed = parseTime(inputB());
-    if (parsed !== null && parsed > selection().start + 1e-3 && parsed <= duration()) {
-      setSelection({
-        ...selection(),
-        end: Math.min(duration(), parsed)
-      });
-    } else {
-      setInputB(formatTime$1(selection().end));
-    }
-  };
-  const handleBKeyDown = (e) => {
-    if (e.key === "Enter") {
-      handleBBlur();
-      e.target.blur();
-    }
-  };
-  const setViewRange = (mode) => {
-    const d = duration();
-    if (d <= 0) return;
-    const s = selection();
-    let newStart = 0;
-    let newLength = d;
-    if (mode === "all") {
-      newStart = 0;
-      newLength = d;
-    } else if (mode === "ab") {
-      const selLen = s.end - s.start;
-      let targetLen = selLen * 2;
-      if (targetLen < 0.1) targetLen = 1;
-      newLength = Math.min(targetLen, d);
-      const center = s.start + selLen / 2;
-      newStart = center - newLength / 2;
-    } else if (mode === "a" || mode === "b") {
-      newLength = Math.min(1, d);
-      const targetTime = mode === "a" ? s.start : s.end;
-      newStart = targetTime - newLength / 2;
-    }
-    if (newStart < 0) newStart = 0;
-    if (newStart + newLength > d) newStart = d - newLength;
-    setView({
-      start: newStart,
-      length: newLength
-    });
-  };
   const getTimePct = (time) => {
     const v = view();
     if (v.length <= 0) return "0%";
@@ -1026,13 +921,13 @@ const WaveformEditor = () => {
     if (totalDuration <= 0 || w <= 0) return 0;
     return time / totalDuration * w;
   };
-  const drawWaveform = (ctx, width, height, buffer, startTime2, duration2, color) => {
+  const drawWaveform = (ctx, width, height, buffer, startTime, duration2, color) => {
     ctx.clearRect(0, 0, width, height);
     ctx.fillStyle = "#1E1E1E";
     ctx.fillRect(0, 0, width, height);
     const sampleRate = buffer.sampleRate;
-    const startSample = Math.floor(startTime2 * sampleRate);
-    const endSample = Math.floor((startTime2 + duration2) * sampleRate);
+    const startSample = Math.floor(startTime * sampleRate);
+    const endSample = Math.floor((startTime + duration2) * sampleRate);
     const lengthInSamples = endSample - startSample;
     if (lengthInSamples <= 0 || width <= 0) return;
     const step = Math.ceil(lengthInSamples / width);
@@ -1128,12 +1023,6 @@ const WaveformEditor = () => {
       start: newStart,
       length: newLength
     });
-  };
-  const handleLabelMouseDown = (e, point) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragMode(point);
-    setIsDragging(true);
   };
   const handleMainMouseDown = (e) => {
     if (!mainContainerRef) return;
@@ -1324,84 +1213,41 @@ const WaveformEditor = () => {
     if (mode === "start" || mode === "end") return "col-resize";
     return "crosshair";
   };
-  const inputStyle = {
-    "width": "80px",
-    "padding": "4px 8px",
-    "font-family": "monospace",
-    "font-size": "14px",
-    "text-align": "center",
-    "border": "1px solid var(--border-color)",
-    "border-radius": "4px",
-    "background": "#1E1E1E",
-    "color": "#FFFFFF",
-    "outline": "none"
-  };
-  const quickBtnStyle = {
-    "padding": "2px 8px",
-    "background": "#2C2C2C",
-    "color": "#AAA",
-    "border": "1px solid #444",
-    "border-radius": "3px",
-    "font-size": "11px",
-    "cursor": "pointer",
-    "font-family": "monospace",
-    "transition": "all 0.1s"
-  };
   return (() => {
-    var _el$ = _tmpl$$2(), _el$2 = _el$.firstChild, _el$3 = _el$2.firstChild, _el$4 = _el$3.firstChild, _el$5 = _el$4.nextSibling, _el$6 = _el$3.nextSibling, _el$7 = _el$6.firstChild, _el$8 = _el$7.nextSibling;
-    _el$8.nextSibling;
-    var _el$0 = _el$6.nextSibling, _el$1 = _el$0.firstChild, _el$10 = _el$1.nextSibling;
-    _el$10.nextSibling;
-    var _el$12 = _el$2.nextSibling, _el$13 = _el$12.firstChild, _el$14 = _el$13.firstChild, _el$15 = _el$14.nextSibling, _el$16 = _el$15.nextSibling, _el$17 = _el$16.nextSibling, _el$18 = _el$13.nextSibling, _el$19 = _el$18.firstChild, _el$20 = _el$19.nextSibling, _el$21 = _el$20.firstChild, _el$22 = _el$21.nextSibling, _el$23 = _el$22.nextSibling, _el$24 = _el$23.nextSibling, _el$25 = _el$24.nextSibling, _el$26 = _el$12.nextSibling, _el$27 = _el$26.firstChild, _el$28 = _el$27.nextSibling, _el$29 = _el$28.firstChild, _el$30 = _el$29.nextSibling, _el$31 = _el$30.nextSibling, _el$32 = _el$31.nextSibling, _el$33 = _el$32.nextSibling;
-    _el$4.$$click = () => setViewRange("all");
-    _el$5.$$click = () => setViewRange("ab");
-    _el$7.$$click = () => setViewRange("a");
-    _el$8.$$keydown = handleAKeyDown;
-    _el$8.addEventListener("blur", handleABlur);
-    _el$8.$$input = (e) => handleAChange(e.currentTarget.value);
-    _el$1.$$click = () => setViewRange("b");
-    _el$10.$$keydown = handleBKeyDown;
-    _el$10.addEventListener("blur", handleBBlur);
-    _el$10.$$input = (e) => handleBChange(e.currentTarget.value);
-    _el$15.$$mousedown = (e) => handleLabelMouseDown(e, "start");
-    _el$17.$$mousedown = (e) => handleLabelMouseDown(e, "end");
-    _el$18.$$contextmenu = handleContextMenu;
-    _el$18.$$mousedown = handleMainMouseDown;
-    _el$18.addEventListener("wheel", handleMainWheel);
+    var _el$ = _tmpl$$3(), _el$2 = _el$.firstChild, _el$3 = _el$2.firstChild, _el$4 = _el$3.firstChild, _el$5 = _el$4.nextSibling, _el$6 = _el$5.nextSibling, _el$7 = _el$6.nextSibling, _el$8 = _el$3.nextSibling, _el$9 = _el$8.firstChild, _el$0 = _el$9.nextSibling, _el$1 = _el$0.firstChild, _el$10 = _el$1.nextSibling, _el$11 = _el$10.nextSibling, _el$12 = _el$11.nextSibling, _el$13 = _el$12.nextSibling, _el$14 = _el$2.nextSibling, _el$15 = _el$14.firstChild, _el$16 = _el$15.nextSibling, _el$17 = _el$16.firstChild, _el$18 = _el$17.nextSibling, _el$19 = _el$18.nextSibling, _el$20 = _el$19.nextSibling, _el$21 = _el$20.nextSibling;
+    _el$8.$$contextmenu = handleContextMenu;
+    _el$8.$$mousedown = handleMainMouseDown;
+    _el$8.addEventListener("wheel", handleMainWheel);
     var _ref$ = mainContainerRef;
-    typeof _ref$ === "function" ? use(_ref$, _el$18) : mainContainerRef = _el$18;
+    typeof _ref$ === "function" ? use(_ref$, _el$8) : mainContainerRef = _el$8;
     var _ref$2 = mainCanvasRef;
-    typeof _ref$2 === "function" ? use(_ref$2, _el$19) : mainCanvasRef = _el$19;
-    _el$26.addEventListener("mouseleave", () => !isDragging() && setMinimapCursor("default"));
-    _el$26.$$mousemove = handleMinimapHover;
-    _el$26.$$mousedown = handleMinimapMouseDown;
+    typeof _ref$2 === "function" ? use(_ref$2, _el$9) : mainCanvasRef = _el$9;
+    _el$14.addEventListener("mouseleave", () => !isDragging() && setMinimapCursor("default"));
+    _el$14.$$mousemove = handleMinimapHover;
+    _el$14.$$mousedown = handleMinimapMouseDown;
     var _ref$3 = minimapContainerRef;
-    typeof _ref$3 === "function" ? use(_ref$3, _el$26) : minimapContainerRef = _el$26;
+    typeof _ref$3 === "function" ? use(_ref$3, _el$14) : minimapContainerRef = _el$14;
     var _ref$4 = minimapCanvasRef;
-    typeof _ref$4 === "function" ? use(_ref$4, _el$27) : minimapCanvasRef = _el$27;
+    typeof _ref$4 === "function" ? use(_ref$4, _el$15) : minimapCanvasRef = _el$15;
     createRenderEffect((_p$) => {
-      var _v$ = quickBtnStyle, _v$2 = quickBtnStyle, _v$3 = inputStyle, _v$4 = inputStyle, _v$5 = getTimePct(selection().start), _v$6 = getTimePct(selection().start), _v$7 = getTimePct(selection().end), _v$8 = getTimePct(selection().end), _v$9 = getMainCursor(), _v$0 = `${Math.max(0, getSelectionStartPct())}%`, _v$1 = `${Math.min(100, getSelectionEndPct())}%`, _v$10 = getTimePct(selection().start), _v$11 = getTimePct(selection().end), _v$12 = getTimePct(currentTime()), _v$13 = minimapCursor(), _v$14 = `${getMinimapViewBox().left}px`, _v$15 = `${getMinimapViewBox().left + getMinimapViewBox().width}px`, _v$16 = `${getMinimapMarkerX(selection().start)}px`, _v$17 = `${getMinimapMarkerX(selection().end)}px`, _v$18 = `${getMinimapViewBox().left}px`, _v$19 = `${getMinimapViewBox().width}px`;
-      _p$.e = style(_el$4, _v$, _p$.e);
-      _p$.t = style(_el$5, _v$2, _p$.t);
-      _p$.a = style(_el$8, _v$3, _p$.a);
-      _p$.o = style(_el$10, _v$4, _p$.o);
-      _v$5 !== _p$.i && setStyleProperty(_el$14, "left", _p$.i = _v$5);
-      _v$6 !== _p$.n && setStyleProperty(_el$15, "left", _p$.n = _v$6);
-      _v$7 !== _p$.s && setStyleProperty(_el$16, "left", _p$.s = _v$7);
-      _v$8 !== _p$.h && setStyleProperty(_el$17, "left", _p$.h = _v$8);
-      _v$9 !== _p$.r && setStyleProperty(_el$18, "cursor", _p$.r = _v$9);
-      _v$0 !== _p$.d && setStyleProperty(_el$21, "width", _p$.d = _v$0);
-      _v$1 !== _p$.l && setStyleProperty(_el$22, "left", _p$.l = _v$1);
-      _v$10 !== _p$.u && setStyleProperty(_el$23, "left", _p$.u = _v$10);
-      _v$11 !== _p$.c && setStyleProperty(_el$24, "left", _p$.c = _v$11);
-      _v$12 !== _p$.w && setStyleProperty(_el$25, "left", _p$.w = _v$12);
-      _v$13 !== _p$.m && setStyleProperty(_el$26, "cursor", _p$.m = _v$13);
-      _v$14 !== _p$.f && setStyleProperty(_el$29, "width", _p$.f = _v$14);
-      _v$15 !== _p$.y && setStyleProperty(_el$30, "left", _p$.y = _v$15);
-      _v$16 !== _p$.g && setStyleProperty(_el$31, "left", _p$.g = _v$16);
-      _v$17 !== _p$.p && setStyleProperty(_el$32, "left", _p$.p = _v$17);
-      _v$18 !== _p$.b && setStyleProperty(_el$33, "left", _p$.b = _v$18);
-      _v$19 !== _p$.T && setStyleProperty(_el$33, "width", _p$.T = _v$19);
+      var _v$ = getTimePct(selection().start), _v$2 = getTimePct(selection().start), _v$3 = getTimePct(selection().end), _v$4 = getTimePct(selection().end), _v$5 = getMainCursor(), _v$6 = `${Math.max(0, getSelectionStartPct())}%`, _v$7 = `${Math.min(100, getSelectionEndPct())}%`, _v$8 = getTimePct(selection().start), _v$9 = getTimePct(selection().end), _v$0 = getTimePct(currentTime()), _v$1 = minimapCursor(), _v$10 = `${getMinimapViewBox().left}px`, _v$11 = `${getMinimapViewBox().left + getMinimapViewBox().width}px`, _v$12 = `${getMinimapMarkerX(selection().start)}px`, _v$13 = `${getMinimapMarkerX(selection().end)}px`, _v$14 = `${getMinimapViewBox().left}px`, _v$15 = `${getMinimapViewBox().width}px`;
+      _v$ !== _p$.e && setStyleProperty(_el$4, "left", _p$.e = _v$);
+      _v$2 !== _p$.t && setStyleProperty(_el$5, "left", _p$.t = _v$2);
+      _v$3 !== _p$.a && setStyleProperty(_el$6, "left", _p$.a = _v$3);
+      _v$4 !== _p$.o && setStyleProperty(_el$7, "left", _p$.o = _v$4);
+      _v$5 !== _p$.i && setStyleProperty(_el$8, "cursor", _p$.i = _v$5);
+      _v$6 !== _p$.n && setStyleProperty(_el$1, "width", _p$.n = _v$6);
+      _v$7 !== _p$.s && setStyleProperty(_el$10, "left", _p$.s = _v$7);
+      _v$8 !== _p$.h && setStyleProperty(_el$11, "left", _p$.h = _v$8);
+      _v$9 !== _p$.r && setStyleProperty(_el$12, "left", _p$.r = _v$9);
+      _v$0 !== _p$.d && setStyleProperty(_el$13, "left", _p$.d = _v$0);
+      _v$1 !== _p$.l && setStyleProperty(_el$14, "cursor", _p$.l = _v$1);
+      _v$10 !== _p$.u && setStyleProperty(_el$17, "width", _p$.u = _v$10);
+      _v$11 !== _p$.c && setStyleProperty(_el$18, "left", _p$.c = _v$11);
+      _v$12 !== _p$.w && setStyleProperty(_el$19, "left", _p$.w = _v$12);
+      _v$13 !== _p$.m && setStyleProperty(_el$20, "left", _p$.m = _v$13);
+      _v$14 !== _p$.f && setStyleProperty(_el$21, "left", _p$.f = _v$14);
+      _v$15 !== _p$.y && setStyleProperty(_el$21, "width", _p$.y = _v$15);
       return _p$;
     }, {
       e: void 0,
@@ -1420,20 +1266,14 @@ const WaveformEditor = () => {
       w: void 0,
       m: void 0,
       f: void 0,
-      y: void 0,
-      g: void 0,
-      p: void 0,
-      b: void 0,
-      T: void 0
+      y: void 0
     });
-    createRenderEffect(() => _el$8.value = inputA());
-    createRenderEffect(() => _el$10.value = inputB());
     return _el$;
   })();
 };
-delegateEvents(["click", "input", "keydown", "mousedown", "contextmenu", "mousemove"]);
-var _tmpl$$1 = /* @__PURE__ */ template(`<div style=display:flex;align-items:center;gap:24px><div style=font-family:monospace;font-size:14px>s / <!>s</div><div style=display:flex;align-items:center;gap:12px><button title=从A点开始播放 style="width:36px;height:36px;border-radius:50%;border:2px solid #00FF00;background:transparent;color:#00FF00;cursor:pointer;font-size:13px;display:flex;justify-content:center;align-items:center;font-weight:bold">A▶</button><button title=从B点前2秒开始播放 style="width:36px;height:36px;border-radius:50%;border:2px solid #FF0000;background:transparent;color:#FF0000;cursor:pointer;font-size:13px;display:flex;justify-content:center;align-items:center;font-weight:bold">▶B</button><button style=width:36px;height:36px;border-radius:50%;border:none;background:var(--text-color);color:var(--bg-color);cursor:pointer;font-size:18px;display:flex;justify-content:center;align-items:center></button></div><button style="padding:8px 16px;background:var(--primary-color);color:#000;border:none;border-radius:4px;font-weight:bold;cursor:pointer;font-size:12px">Export WAV`);
-const formatTime = (time) => time.toFixed(3);
+delegateEvents(["mousedown", "contextmenu", "mousemove"]);
+var _tmpl$$2 = /* @__PURE__ */ template(`<div style=display:flex;align-items:center;gap:24px><div style=font-family:monospace;font-size:14px>s / <!>s</div><div style=display:flex;align-items:center;gap:12px><button title=从A点开始播放 style="width:36px;height:36px;border-radius:50%;border:2px solid #00FF00;background:transparent;color:#00FF00;cursor:pointer;font-size:13px;display:flex;justify-content:center;align-items:center;font-weight:bold">A▶</button><button title=从B点前2秒开始播放 style="width:36px;height:36px;border-radius:50%;border:2px solid #FF0000;background:transparent;color:#FF0000;cursor:pointer;font-size:13px;display:flex;justify-content:center;align-items:center;font-weight:bold">▶B</button><button style=width:36px;height:36px;border-radius:50%;border:none;background:var(--text-color);color:var(--bg-color);cursor:pointer;font-size:18px;display:flex;justify-content:center;align-items:center>`);
+const formatTime$1 = (time) => time.toFixed(3);
 const Controls = () => {
   const togglePlay = () => {
     if (isPlaying()) {
@@ -1443,33 +1283,218 @@ const Controls = () => {
     }
   };
   return (() => {
-    var _el$ = _tmpl$$1(), _el$2 = _el$.firstChild, _el$3 = _el$2.firstChild, _el$5 = _el$3.nextSibling;
+    var _el$ = _tmpl$$2(), _el$2 = _el$.firstChild, _el$3 = _el$2.firstChild, _el$5 = _el$3.nextSibling;
     _el$5.nextSibling;
-    var _el$6 = _el$2.nextSibling, _el$7 = _el$6.firstChild, _el$8 = _el$7.nextSibling, _el$9 = _el$8.nextSibling, _el$0 = _el$6.nextSibling;
-    insert(_el$2, () => formatTime(currentTime()), _el$3);
-    insert(_el$2, () => formatTime(duration()), _el$5);
+    var _el$6 = _el$2.nextSibling, _el$7 = _el$6.firstChild, _el$8 = _el$7.nextSibling, _el$9 = _el$8.nextSibling;
+    insert(_el$2, () => formatTime$1(currentTime()), _el$3);
+    insert(_el$2, () => formatTime$1(duration()), _el$5);
     addEventListener(_el$7, "click", playFromA);
     addEventListener(_el$8, "click", playToB);
     _el$9.$$click = togglePlay;
     insert(_el$9, () => isPlaying() ? "⏸" : "▶");
-    addEventListener(_el$0, "click", exportSelection);
     return _el$;
   })();
 };
 delegateEvents(["click"]);
-var _tmpl$ = /* @__PURE__ */ template(`<div style=width:100%;height:100%;display:flex;justify-content:center;align-items:center;padding:24px;box-sizing:border-box><div style=width:100%;height:100%;max-width:100%;max-height:100%>`), _tmpl$2 = /* @__PURE__ */ template(`<div style=display:flex;flex-direction:column;height:100vh;width:100vw;overflow:hidden><header style="height:80px;flex-shrink:0;background:var(--surface-color);border-bottom:1px solid var(--border-color);display:flex;align-items:center;padding:0 24px;justify-content:space-between"><h1 style=margin:0;font-size:20px;font-weight:bold>ABCut</h1><span style=font-size:12px;color:#888>v0.1.0 MVP</span></header><main style=flex:1;position:relative;overflow:hidden;min-height:0;background:#0a0a0a>`);
+var _tmpl$$1 = /* @__PURE__ */ template(`<div style=display:flex;flex-direction:row;align-items:center;gap:12px><div><button>View All</button><div style=width:1px;height:16px;background:#555></div><button>View AB</button></div><div><button title="Jump to A"style=color:#00FF00>A</button><input type=text></div><div><button title="Jump to B"style=color:#FF0000>B</button><input type=text></div><button title="Export selection to WAV">Export WAV`);
+const parseTime = (str) => {
+  const num = parseFloat(str);
+  if (isNaN(num) || num < 0) return null;
+  return num;
+};
+const formatTime = (time) => time.toFixed(3);
+const Toolbar = () => {
+  const [inputA, setInputA] = createSignal(formatTime(selection().start));
+  const [inputB, setInputB] = createSignal(formatTime(selection().end));
+  createEffect(() => {
+    setInputA(formatTime(selection().start));
+  });
+  createEffect(() => {
+    setInputB(formatTime(selection().end));
+  });
+  const handleABlur = () => {
+    const parsed = parseTime(inputA());
+    if (parsed !== null && parsed >= 0 && parsed < selection().end - 1e-3) {
+      setSelection({
+        ...selection(),
+        start: Math.max(0, parsed)
+      });
+    } else {
+      setInputA(formatTime(selection().start));
+    }
+  };
+  const handleAKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleABlur();
+      e.target.blur();
+    }
+  };
+  const handleBBlur = () => {
+    const parsed = parseTime(inputB());
+    if (parsed !== null && parsed > selection().start + 1e-3 && parsed <= duration()) {
+      setSelection({
+        ...selection(),
+        end: Math.min(duration(), parsed)
+      });
+    } else {
+      setInputB(formatTime(selection().end));
+    }
+  };
+  const handleBKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleBBlur();
+      e.target.blur();
+    }
+  };
+  const setViewRange = (mode) => {
+    const d = duration();
+    if (d <= 0) return;
+    const s = selection();
+    let newStart = 0;
+    let newLength = d;
+    if (mode === "all") {
+      newStart = 0;
+      newLength = d;
+    } else if (mode === "ab") {
+      const selLen = s.end - s.start;
+      let targetLen = selLen;
+      if (targetLen < 0.1) targetLen = 0.1;
+      newLength = Math.min(targetLen, d);
+      if (newLength > selLen) {
+        const center = s.start + selLen / 2;
+        newStart = center - newLength / 2;
+      } else {
+        newStart = s.start;
+      }
+    } else if (mode === "a" || mode === "b") {
+      newLength = Math.min(1, d);
+      const targetTime = mode === "a" ? s.start : s.end;
+      newStart = targetTime - newLength / 2;
+    }
+    if (newStart < 0) newStart = 0;
+    if (newStart + newLength > d) newStart = d - newLength;
+    setView({
+      start: newStart,
+      length: newLength
+    });
+  };
+  const groupStyle = {
+    "display": "flex",
+    "align-items": "center",
+    "gap": "8px",
+    "background": "#2C2C2C",
+    "padding": "4px 8px",
+    "border-radius": "6px",
+    "border": "1px solid #444"
+  };
+  const btnStyle = {
+    "padding": "4px 8px",
+    "background": "transparent",
+    "color": "#E0E0E0",
+    "border": "none",
+    "border-radius": "4px",
+    "font-size": "12px",
+    "cursor": "pointer",
+    "font-family": "monospace",
+    "font-weight": "bold",
+    "transition": "background 0.2s"
+  };
+  const inputStyle = {
+    "width": "60px",
+    "padding": "2px 4px",
+    "font-family": "monospace",
+    "font-size": "12px",
+    "text-align": "center",
+    "border": "1px solid #555",
+    "border-radius": "3px",
+    "background": "#1E1E1E",
+    "color": "#FFF",
+    "outline": "none"
+  };
+  const exportBtnStyle = {
+    "padding": "6px 16px",
+    "background": "var(--primary-color)",
+    "color": "#000",
+    "border": "none",
+    "border-radius": "4px",
+    "font-weight": "bold",
+    "cursor": "pointer",
+    "font-size": "12px",
+    "margin-left": "16px"
+    // 与其他控件拉开距离
+  };
+  return (() => {
+    var _el$ = _tmpl$$1(), _el$2 = _el$.firstChild, _el$3 = _el$2.firstChild, _el$4 = _el$3.nextSibling, _el$5 = _el$4.nextSibling, _el$6 = _el$2.nextSibling, _el$7 = _el$6.firstChild, _el$8 = _el$7.nextSibling, _el$9 = _el$6.nextSibling, _el$0 = _el$9.firstChild, _el$1 = _el$0.nextSibling, _el$10 = _el$9.nextSibling;
+    _el$3.addEventListener("mouseleave", (e) => e.currentTarget.style.background = "transparent");
+    _el$3.addEventListener("mouseenter", (e) => e.currentTarget.style.background = "#444");
+    _el$3.$$click = () => setViewRange("all");
+    _el$5.addEventListener("mouseleave", (e) => e.currentTarget.style.background = "transparent");
+    _el$5.addEventListener("mouseenter", (e) => e.currentTarget.style.background = "#444");
+    _el$5.$$click = () => setViewRange("ab");
+    _el$7.$$click = () => setViewRange("a");
+    _el$8.$$keydown = handleAKeyDown;
+    _el$8.addEventListener("blur", handleABlur);
+    _el$8.$$input = (e) => setInputA(e.currentTarget.value);
+    _el$0.$$click = () => setViewRange("b");
+    _el$1.$$keydown = handleBKeyDown;
+    _el$1.addEventListener("blur", handleBBlur);
+    _el$1.$$input = (e) => setInputB(e.currentTarget.value);
+    addEventListener(_el$10, "click", exportSelection);
+    style(_el$10, exportBtnStyle);
+    createRenderEffect((_p$) => {
+      var _v$ = groupStyle, _v$2 = btnStyle, _v$3 = btnStyle, _v$4 = groupStyle, _v$5 = {
+        ...btnStyle
+      }, _v$6 = inputStyle, _v$7 = groupStyle, _v$8 = {
+        ...btnStyle
+      }, _v$9 = inputStyle;
+      _p$.e = style(_el$2, _v$, _p$.e);
+      _p$.t = style(_el$3, _v$2, _p$.t);
+      _p$.a = style(_el$5, _v$3, _p$.a);
+      _p$.o = style(_el$6, _v$4, _p$.o);
+      _p$.i = style(_el$7, _v$5, _p$.i);
+      _p$.n = style(_el$8, _v$6, _p$.n);
+      _p$.s = style(_el$9, _v$7, _p$.s);
+      _p$.h = style(_el$0, _v$8, _p$.h);
+      _p$.r = style(_el$1, _v$9, _p$.r);
+      return _p$;
+    }, {
+      e: void 0,
+      t: void 0,
+      a: void 0,
+      o: void 0,
+      i: void 0,
+      n: void 0,
+      s: void 0,
+      h: void 0,
+      r: void 0
+    });
+    createRenderEffect(() => _el$8.value = inputA());
+    createRenderEffect(() => _el$1.value = inputB());
+    return _el$;
+  })();
+};
+delegateEvents(["click", "input", "keydown"]);
+var _tmpl$ = /* @__PURE__ */ template(`<div style=width:100%;height:100%;display:flex;justify-content:center;align-items:center;padding:24px;box-sizing:border-box><div style=width:100%;height:100%;max-width:100%;max-height:100%>`), _tmpl$2 = /* @__PURE__ */ template(`<div style=display:flex;flex-direction:column;height:100vh;width:100vw;overflow:hidden><header style="height:80px;flex-shrink:0;background:var(--surface-color);border-bottom:1px solid var(--border-color);display:flex;align-items:center;padding:0 24px;justify-content:space-between"><h1 style=margin:0;font-size:20px;font-weight:bold;width:200px>ABCut</h1><div style=display:flex;justify-content:center;flex:1></div><div style=display:flex;justify-content:flex-end;width:auto></div></header><main style=flex:1;position:relative;overflow:hidden;min-height:0;background:#0a0a0a>`);
 const App = () => {
   return (() => {
-    var _el$ = _tmpl$2(), _el$2 = _el$.firstChild, _el$3 = _el$2.firstChild, _el$4 = _el$3.nextSibling, _el$5 = _el$2.nextSibling;
-    insert(_el$2, createComponent(Show, {
+    var _el$ = _tmpl$2(), _el$2 = _el$.firstChild, _el$3 = _el$2.firstChild, _el$4 = _el$3.nextSibling, _el$5 = _el$4.nextSibling, _el$6 = _el$2.nextSibling;
+    insert(_el$4, createComponent(Show, {
       get when() {
         return duration() > 0;
       },
       get children() {
         return createComponent(Controls, {});
       }
-    }), _el$4);
+    }));
     insert(_el$5, createComponent(Show, {
+      get when() {
+        return duration() > 0;
+      },
+      get children() {
+        return createComponent(Toolbar, {});
+      }
+    }));
+    insert(_el$6, createComponent(Show, {
       get when() {
         return duration() > 0;
       },
@@ -1477,9 +1502,9 @@ const App = () => {
         return createComponent(DropZone, {});
       },
       get children() {
-        var _el$6 = _tmpl$(), _el$7 = _el$6.firstChild;
-        insert(_el$7, createComponent(WaveformEditor, {}));
-        return _el$6;
+        var _el$7 = _tmpl$(), _el$8 = _el$7.firstChild;
+        insert(_el$8, createComponent(WaveformEditor, {}));
+        return _el$7;
       }
     }));
     return _el$;

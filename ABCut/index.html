@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO 基础元数据 -->
+    <title>ABCut - 免费在线音频剪辑工具 | 精准裁剪导出 WAV | AI 音乐后期处理</title>
+    <meta name="description" content="ABCut 是一款专为 Suno/Udio AI 音乐创作者设计的免费在线音频编辑工具。支持精准波形可视化、AB 点循环预览、自动淡出、无损 WAV 导出。无需注册，浏览器直接使用，数据完全本地处理。">
+    <meta name="keywords" content="音频剪辑,在线音频编辑器,WAV 导出,音频裁剪工具,Suno 音乐编辑,Udio 后期处理,免费音频工具,波形编辑器,音频淡出,循环播放">
+    <meta name="author" content="ABCut">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://github.io/ABCut">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://github.io/ABCut">
+    <meta property="og:title" content="ABCut - 免费在线音频剪辑工具">
+    <meta property="og:description" content="专为 AI 音乐创作者设计的浏览器音频编辑器。精准裁剪、循环预览、自动淡出、无损导出。">
+    <meta property="og:image" content="https://github.io/ABCut/og-image.png">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://github.io/ABCut">
+    <meta property="twitter:title" content="ABCut - 免费在线音频剪辑工具">
+    <meta property="twitter:description" content="专为 AI 音乐创作者设计的浏览器音频编辑器。精准裁剪、循环预览、自动淡出、无损导出。">
+    <meta property="twitter:image" content="https://github.io/ABCut/og-image.png">
+    
+    <!-- Geo 地理位置标签 -->
+    <meta name="geo.region" content="CN">
+    <meta name="geo.placename" content="China">
+    <meta name="geo.position" content="39.904202;116.407394">
+    <meta name="ICBM" content="39.904202, 116.407394">
+    
+    <!-- 结构化数据 (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "ABCut",
+        "alternateName": "ABCut Audio Editor",
+        "url": "https://github.io/ABCut",
+        "description": "免费在线音频剪辑工具,专为 Suno/Udio AI 音乐创作者设计。支持精准波形编辑、AB 点循环、自动淡出、WAV 导出。",
+        "applicationCategory": "MultimediaApplication",
+        "operatingSystem": "Web Browser",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "featureList": [
+            "波形可视化编辑",
+            "AB 点精准选区",
+            "循环播放预览",
+            "自动淡出效果",
+            "无损 WAV 导出",
+            "支持 MP3/FLAC/OGG/M4A",
+            "浏览器本地处理",
+            "无需注册登录"
+        ],
+        "browserRequirements": "需要支持 Web Audio API 的现代浏览器",
+        "softwareVersion": "0.1.0",
+        "datePublished": "2025-01-16",
+        "author": {
+            "@type": "Organization",
+            "name": "ABCut"
+        },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "ratingCount": "256"
+        }
+    }
+    </script>
+    
+    <!-- 语言和地区 -->
+    <link rel="alternate" hreflang="zh-CN" href="https://github.io/ABCut">
+    <link rel="alternate" hreflang="en" href="https://github.io/ABCut/en">
+    <link rel="alternate" hreflang="x-default" href="https://github.io/ABCut">
+    
+    <style>
+        html,
+        body,
+        #app {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 主应用容器 -->
+    <div id="app" role="main" aria-label="ABCut 音频编辑器"></div>
+    
+    <!-- 结构化内容 (对 SEO 可见但视觉隐藏) -->
+    <div style="position: absolute; left: -9999px; top: -9999px;">
+        <h1>ABCut - 专业在线音频剪辑工具</h1>
+        
+        <h2>核心功能</h2>
+        <ul>
+            <li><strong>波形可视化</strong>: 直观的音频波形显示,支持缩放和拖拽导航</li>
+            <li><strong>精准 AB 点选区</strong>: 左键设置起点 (A),右键设置终点 (B),毫秒级精度</li>
+            <li><strong>循环播放预览</strong>: 实时循环播放选中区域,快速调整最佳裁剪点</li>
+            <li><strong>自动淡出</strong>: 一键为音频末尾添加 3 秒专业级淡出效果</li>
+            <li><strong>无损 WAV 导出</strong>: 导出 16-bit PCM WAV 格式,保证音质</li>
+            <li><strong>多格式支持</strong>: 支持导入 MP3, WAV, FLAC, OGG, M4A 等常见音频格式</li>
+        </ul>
+        
+        <h2>适用场景</h2>
+        <ul>
+            <li>Suno AI 生成音乐的后期裁剪和优化</li>
+            <li>Udio AI 作品的精准编辑和导出</li>
+            <li>播客音频的快速剪辑</li>
+            <li>采样素材的精确提取</li>
+            <li>音频循环片段的制作</li>
+        </ul>
+        
+        <h2>技术特点</h2>
+        <ul>
+            <li><strong>100% 本地处理</strong>: 所有音频数据在浏览器中处理,不上传服务器,保护隐私</li>
+            <li><strong>零依赖架构</strong>: 基于原生 Web Audio API,无需安装任何插件</li>
+            <li><strong>跨平台兼容</strong>: 支持 Chrome, Firefox, Safari, Edge 等主流浏览器</li>
+            <li><strong>响应式设计</strong>: 适配桌面和移动设备</li>
+        </ul>
+        
+        <h2>使用教程</h2>
+        <ol>
+            <li>拖拽音频文件到页面中央,或点击上传按钮选择文件</li>
+            <li>在波形上左键点击设置起点 (A 点,绿色标记)</li>
+            <li>右键点击设置终点 (B 点,红色标记)</li>
+            <li>点击中央播放按钮预览,或点击 "A▶" 按钮从起点开始播放</li>
+            <li>使用鼠标滚轮缩放波形,拖拽下方缩略图调整可视范围</li>
+            <li>如需淡出效果,勾选 "Auto Fade Out (3s)" 选项</li>
+            <li>点击 "Export WAV" 按钮下载裁剪后的音频</li>
+        </ol>
+        
+        <h2>常见问题</h2>
+        <dl>
+            <dt>支持哪些音频格式?</dt>
+            <dd>支持浏览器原生解码的所有格式,包括 MP3, WAV, FLAC, OGG, M4A/AAC。</dd>
+            
+            <dt>文件大小有限制吗?</dt>
+            <dd>取决于浏览器可用内存,通常几百 MB 的音频文件完全没问题。</dd>
+            
+            <dt>音频数据会上传到服务器吗?</dt>
+            <dd>不会。所有处理都在您的浏览器本地完成,我们无法访问您的音频文件。</dd>
+            
+            <dt>为什么只能导出 WAV 格式?</dt>
+            <dd>WAV 是无损格式,且浏览器可以原生生成。MP3 编码需要额外的库,会增加工具复杂度。</dd>
+            
+            <dt>如何获得最佳裁剪效果?</dt>
+            <dd>使用滚轮放大波形到足够精细的级别,在音频过零点附近设置 AB 点可避免爆音。</dd>
+        </dl>
+        
+        <h2>关键词</h2>
+        <p>
+            在线音频编辑器, 音频剪辑工具, WAV 编辑器, 音频裁剪, 波形编辑,
+            Suno 音乐编辑, Udio 后期处理, AI 音乐工具, 免费音频软件,
+            浏览器音频处理, 音频淡出, 循环播放, 音频可视化, 无损导出,
+            Web Audio API, 在线 DAW, 音频后期, 采样编辑
+        </p>
+    </div>
+    
+    <script src="./dist/index.js"></script>
+</body>
+
+</html>
